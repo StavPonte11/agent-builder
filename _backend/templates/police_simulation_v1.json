@@ -1,0 +1,216 @@
+{
+    "id": "police_simulation_v1",
+    "name": "Police Simulation — Director Blueprint",
+    "description": "Multi-agent police exercise simulation. Director reads world state, dispatches units, evaluates decisions, and emits GeoJSON for the live map.",
+    "entry_point": "state_reader",
+    "nodes": [
+        {
+            "id": "state_reader",
+            "type": "state_reader",
+            "label": "Read World State",
+            "description": "Load current ExerciseState (units, events) from Redis into agent context",
+            "config": {
+                "source": "exercise_state",
+                "fields": [
+                    "unit_statuses",
+                    "active_events",
+                    "elapsed_minutes"
+                ],
+                "format": "json"
+            },
+            "position": {
+                "x": 100,
+                "y": 200
+            }
+        },
+        {
+            "id": "director_agent",
+            "type": "llm",
+            "label": "Director Agent",
+            "description": "Analyzes active events and available units, generates dispatch decisions",
+            "config": {
+                "model": "gpt-4o",
+                "temperature": 0.3,
+                "max_tokens": 1500,
+                "inject_exercise_context": true,
+                "system_prompt": "You are the Police Exercise Director. You coordinate multiple police units responding to active incidents.\n\nYour role:\n1. Review the current world state (units, active events)\n2. For each active event, assign the most suitable available unit\n3. Consider: unit fatigue (NEVER assign fatigue > 0.85 to high priority), experience, distance, and event priority\n4. Generate structured dispatch decisions\n\nAlways respond with a JSON object containing:\n{\n  \"dispatch_decisions\": [\n    {\n      \"event_id\": \"evt_xxx\",\n      \"assigned_units\": [\"unit_xxx\"],\n      \"priority\": 4,\n      \"reasoning\": \"...\",\n      \"requires_medical\": false,\n      \"estimated_arrival_minutes\": 5\n    }\n  ],\n  \"summary\": \"Overall situation assessment\"\n}"
+            },
+            "position": {
+                "x": 400,
+                "y": 200
+            }
+        },
+        {
+            "id": "decision_router",
+            "type": "router",
+            "label": "Route Decision Type",
+            "description": "Route to medical sub-agent if medical response required, else log decision",
+            "config": {
+                "routing_strategy": "rule_based",
+                "rules": [
+                    {
+                        "field": "requires_medical",
+                        "op": "eq",
+                        "value": true,
+                        "route": "medical_agent"
+                    }
+                ]
+            },
+            "position": {
+                "x": 700,
+                "y": 200
+            }
+        },
+        {
+            "id": "medical_agent",
+            "type": "llm",
+            "label": "Medical Sub-Agent",
+            "description": "Handles medical emergencies — finds nearest medical unit, calculates response time",
+            "config": {
+                "model": "gpt-4o-mini",
+                "temperature": 0.2,
+                "max_tokens": 500,
+                "system_prompt": "You are the Medical Response Coordinator for the police exercise.\nA medical emergency has been reported. You must:\n1. Identify the nearest available medical unit\n2. Calculate estimated response time\n3. Coordinate with the dispatcher\n\nRespond with JSON: { \"medical_unit\": \"unit_xxx\", \"eta_minutes\": 7, \"action\": \"dispatching\" }"
+            },
+            "position": {
+                "x": 900,
+                "y": 100
+            }
+        },
+        {
+            "id": "state_writer",
+            "type": "state_writer",
+            "label": "Log Decision to State",
+            "description": "Write dispatch decision into ExerciseState.decisions_log",
+            "config": {
+                "target": "exercise_state",
+                "operation": "log_decision",
+                "extract_from_last_message": true
+            },
+            "position": {
+                "x": 900,
+                "y": 300
+            }
+        },
+        {
+            "id": "observer",
+            "type": "observer",
+            "label": "Observer Agent",
+            "description": "Extract entity relationships from decisions and push to Cognee KG for post-exercise analysis",
+            "config": {
+                "cognee_enabled": true,
+                "extract_entities": true,
+                "langfuse_enabled": true,
+                "data_set": "police_exercise"
+            },
+            "position": {
+                "x": 1150,
+                "y": 200
+            }
+        },
+        {
+            "id": "evaluator",
+            "type": "evaluator",
+            "label": "Decision Evaluator",
+            "description": "Score dispatch decisions: fatigue compliance, safety, overall quality",
+            "config": {
+                "metrics": [
+                    "fatigue_compliance",
+                    "safety",
+                    "decision_quality"
+                ],
+                "langfuse_enabled": true,
+                "langfuse_dataset": "police_simulation_eval"
+            },
+            "position": {
+                "x": 1150,
+                "y": 350
+            }
+        },
+        {
+            "id": "map_output",
+            "type": "map_output",
+            "label": "Update Map",
+            "description": "Emit GeoJSON of all units and events for the live exercise map",
+            "config": {
+                "include_units": true,
+                "include_events": true
+            },
+            "position": {
+                "x": 1400,
+                "y": 200
+            }
+        }
+    ],
+    "edges": [
+        {
+            "id": "e1",
+            "source": "state_reader",
+            "target": "director_agent",
+            "label": ""
+        },
+        {
+            "id": "e2",
+            "source": "director_agent",
+            "target": "decision_router",
+            "label": ""
+        },
+        {
+            "id": "e3",
+            "source": "decision_router",
+            "target": "medical_agent",
+            "label": "medical",
+            "condition": "medical_agent"
+        },
+        {
+            "id": "e4",
+            "source": "decision_router",
+            "target": "state_writer",
+            "label": "default",
+            "condition": "default"
+        },
+        {
+            "id": "e5",
+            "source": "medical_agent",
+            "target": "state_writer",
+            "label": ""
+        },
+        {
+            "id": "e6",
+            "source": "state_writer",
+            "target": "observer",
+            "label": ""
+        },
+        {
+            "id": "e7",
+            "source": "observer",
+            "target": "evaluator",
+            "label": ""
+        },
+        {
+            "id": "e8",
+            "source": "evaluator",
+            "target": "map_output",
+            "label": ""
+        }
+    ],
+    "metadata": {
+        "version": "1.0",
+        "scenario_type": "police_simulation",
+        "created_at": "2026-02-20",
+        "tags": [
+            "multi-agent",
+            "simulation",
+            "evaluation",
+            "geospatial"
+        ],
+        "recommended_config": {
+            "num_units": 8,
+            "sim_time_multiplier": 10.0,
+            "initial_fatigue": 0.1,
+            "inject_chaos": true,
+            "assessment_mode": true,
+            "max_sim_minutes": 60
+        }
+    }
+}
