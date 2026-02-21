@@ -1,0 +1,20 @@
+// en.json - English translations
+{
+  "chat": {
+    "greeting": {
+      "title": "Welcome to Your AI Agent",
+      "subtitle": "How can I assist you today?"
+    },
+    "features": {
+      "powerful": "Powerful Agents",
+      "tools": "Multiple Tools",
+      "fast": "Lightning Fast"
+    },
+    "input": {
+      "placeholder": "Type your message... Use # to select tools"
+    },
+    "workflow": {
+      "title": "Workflow Visualization"
+    }
+  }
+}

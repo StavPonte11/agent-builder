@@ -1,0 +1,67 @@
+version: "3.5"
+
+services:
+  # Temporal Server & UI
+  temporal:
+    image: temporalio/auto-setup:1.24.2
+    ports:
+      - "7233:7233" # Client gRPC
+      - "8080:8080" # Web UI
+    environment:
+      - DB=postgresql
+      - DB_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PWD=postgres
+      - POSTGRES_SEEDS=postgres
+      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development.yaml
+    depends_on:
+      - postgres
+    networks:
+      - agent-network
+
+  # Postgres Database
+  postgres:
+    image: postgres:15
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=agent_workflow_builder
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+    networks:
+      - agent-network
+
+  # Redis (Cache / PubSub)
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    networks:
+      - agent-network
+
+  # Observability
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - agent-network
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - prometheus
+    networks:
+      - agent-network
+
+networks:
+  agent-network:
+    driver: bridge

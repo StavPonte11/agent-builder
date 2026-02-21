@@ -1,0 +1,69 @@
+{
+    "app": {
+        "title": "Agent Studio",
+        "tagline": "Build multi-agent systems visually"
+    },
+    "nav": {
+        "build": "Build",
+        "chat": "Chat",
+        "sandbox": "Sandbox",
+        "tests": "Tests",
+        "approvals": "Approvals",
+        "exercises": "Exercises",
+        "templates": "Templates",
+        "skills": "Skills"
+    },
+    "canvas": {
+        "save": "Save",
+        "run": "Run & Test",
+        "schedule": "Schedule",
+        "json": "JSON",
+        "palette": "Palette",
+        "untitled": "Untitled Agent"
+    },
+    "nodes": {
+        "llm": "LLM Agent",
+        "tool_executor": "Tool Executor",
+        "memory": "Memory",
+        "router": "Router",
+        "human_approval": "Human Approval",
+        "start": "Start",
+        "end": "End",
+        "observer": "Observer",
+        "state_writer": "State Writer",
+        "state_reader": "State Reader",
+        "map_output": "Map Output",
+        "evaluator": "Evaluator"
+    },
+    "palette": {
+        "core": "Core Agents",
+        "flow": "Flow Control",
+        "memory_kg": "Memory & KG",
+        "tools": "MCP Tools"
+    },
+    "exercise": {
+        "title": "Exercise Runner",
+        "start": "Start Exercise",
+        "stop": "Stop Exercise",
+        "units": "Units",
+        "events": "Active Events",
+        "fatigue": "Fatigue",
+        "experience": "Experience",
+        "status": "Status"
+    },
+    "status": {
+        "running": "Running",
+        "success": "Completed",
+        "error": "Failed",
+        "idle": "Idle",
+        "waiting": "Waiting"
+    },
+    "common": {
+        "save": "Save",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "close": "Close",
+        "loading": "Loading...",
+        "search": "Search"
+    }
+}
