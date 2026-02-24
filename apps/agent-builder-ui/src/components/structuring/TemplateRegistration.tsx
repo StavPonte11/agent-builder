@@ -1,17 +1,17 @@
+import { DeleteOutlined, EditOutlined, PlayCircleOutlined, PlusOutlined, SaveOutlined } from '@ant-design/icons';
+import { Button, Card, Divider, Form, Input, Modal, Select, Space, Table, Tag } from 'antd';
+import { LayoutTemplate } from 'lucide-react';
 import React, { useState } from 'react';
-import { Card, Form, Input, Button, Table, Space, Tag, Modal, Divider, List, Select } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, SaveOutlined, PlayCircleOutlined } from '@ant-design/icons';
-import { MessageSquare, LayoutTemplate, ShieldAlert } from 'lucide-react';
 
 const { TextArea } = Input;
 const { Option } = Select;
 
 // Mock interfaces for Hebrew support
 interface TemplateSchema {
-    id: str;
-    name: str;
-    description_he: str;
-    version: str;
+    id: string;
+    name: string;
+    description_he: string;
+    version: string;
     fields: any[];
 }
 
