@@ -756,6 +756,78 @@
         "documentation": {}
     },
     {
+        "label": "Any",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "List",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Dict",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Any",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "List",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Dict",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Any",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "List",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Dict",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
         "label": "Optional",
         "importPath": "typing",
         "description": "typing",
@@ -1301,6 +1373,270 @@
     },
     {
         "label": "List",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Any",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "TypedDict",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "List",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Optional",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Any",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Literal",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "List",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Optional",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Dict",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Any",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "List",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Optional",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Dict",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Any",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "List",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Optional",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Dict",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Any",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "List",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Optional",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Dict",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Any",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "List",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Optional",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Dict",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Any",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "List",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Optional",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Dict",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Any",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "List",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Optional",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Dict",
         "importPath": "typing",
         "description": "typing",
         "isExtraImport": true,
@@ -1892,6 +2228,22 @@
         "description": "starlette.middleware.base",
         "isExtraImport": true,
         "detail": "starlette.middleware.base",
+        "documentation": {}
+    },
+    {
+        "label": "Langfuse",
+        "importPath": "langfuse",
+        "description": "langfuse",
+        "isExtraImport": true,
+        "detail": "langfuse",
+        "documentation": {}
+    },
+    {
+        "label": "Langfuse",
+        "importPath": "langfuse",
+        "description": "langfuse",
+        "isExtraImport": true,
+        "detail": "langfuse",
         "documentation": {}
     },
     {
@@ -2552,6 +2904,14 @@
     },
     {
         "label": "date",
+        "importPath": "datetime",
+        "description": "datetime",
+        "isExtraImport": true,
+        "detail": "datetime",
+        "documentation": {}
+    },
+    {
+        "label": "datetime",
         "importPath": "datetime",
         "description": "datetime",
         "isExtraImport": true,
@@ -4425,6 +4785,22 @@
         "documentation": {}
     },
     {
+        "label": "StateGraph",
+        "importPath": "langgraph.graph",
+        "description": "langgraph.graph",
+        "isExtraImport": true,
+        "detail": "langgraph.graph",
+        "documentation": {}
+    },
+    {
+        "label": "END",
+        "importPath": "langgraph.graph",
+        "description": "langgraph.graph",
+        "isExtraImport": true,
+        "detail": "langgraph.graph",
+        "documentation": {}
+    },
+    {
         "label": "argparse",
         "kind": 6,
         "isExtraImport": true,
@@ -4609,6 +4985,22 @@
         "description": "temporalio.worker",
         "isExtraImport": true,
         "detail": "temporalio.worker",
+        "documentation": {}
+    },
+    {
+        "label": "defaultdict",
+        "importPath": "collections",
+        "description": "collections",
+        "isExtraImport": true,
+        "detail": "collections",
+        "documentation": {}
+    },
+    {
+        "label": "defaultdict",
+        "importPath": "collections",
+        "description": "collections",
+        "isExtraImport": true,
+        "detail": "collections",
         "documentation": {}
     },
     {
@@ -5840,14 +6232,6 @@
         "importPath": "csv",
         "description": "csv",
         "detail": "csv",
-        "documentation": {}
-    },
-    {
-        "label": "defaultdict",
-        "importPath": "collections",
-        "description": "collections",
-        "isExtraImport": true,
-        "detail": "collections",
         "documentation": {}
     },
     {
@@ -7461,6 +7845,51 @@
         "description": "apps.agent-builder-ui.node_modules.flatted.python.flatted",
         "peekOfCode": "def stringify(value, *args, **kwargs):\n    known = _Known()\n    input = []\n    output = []\n    i = int(_index(known, input, value))\n    while i < len(input):\n        output.append(_transform(known, input, input[i]))\n        i += 1\n    return _json.dumps(output, *args, **kwargs)",
         "detail": "apps.agent-builder-ui.node_modules.flatted.python.flatted",
+        "documentation": {}
+    },
+    {
+        "label": "EvaluationMetrics",
+        "kind": 6,
+        "importPath": "packages.skills_framework.evaluation.metrics",
+        "description": "packages.skills_framework.evaluation.metrics",
+        "peekOfCode": "class EvaluationMetrics:\n    \"\"\"\n    Calculate performance metrics across all dimensions.\n    \"\"\"\n    def template_routing_accuracy(\n        self,\n        predictions: List[str],\n        ground_truth: List[str]\n    ) -> dict:\n        \"\"\"",
+        "detail": "packages.skills_framework.evaluation.metrics",
+        "documentation": {}
+    },
+    {
+        "label": "OnlineEvaluator",
+        "kind": 6,
+        "importPath": "packages.skills_framework.evaluation.online",
+        "description": "packages.skills_framework.evaluation.online",
+        "peekOfCode": "class OnlineEvaluator:\n    \"\"\"\n    Monitor production performance in real-time.\n    \"\"\"\n    def __init__(self, langfuse_client: Langfuse = None):\n        self.langfuse = langfuse_client or Langfuse()\n    async def log_prediction(\n        self,\n        message_id: str,\n        input_message: str,",
+        "detail": "packages.skills_framework.evaluation.online",
+        "documentation": {}
+    },
+    {
+        "label": "ContinuousLearner",
+        "kind": 6,
+        "importPath": "packages.skills_framework.evaluation.online",
+        "description": "packages.skills_framework.evaluation.online",
+        "peekOfCode": "class ContinuousLearner:\n    \"\"\"\n    Improve system using production data.\n    \"\"\"\n    def __init__(self, langfuse_client: Langfuse = None):\n        self.langfuse = langfuse_client or Langfuse()\n    async def collect_retraining_data(\n        self,\n        min_corrections: int = 100\n    ) -> dict:",
+        "detail": "packages.skills_framework.evaluation.online",
+        "documentation": {}
+    },
+    {
+        "label": "ABTestingFramework",
+        "kind": 6,
+        "importPath": "packages.skills_framework.evaluation.online",
+        "description": "packages.skills_framework.evaluation.online",
+        "peekOfCode": "class ABTestingFramework:\n    \"\"\"\n    Run A/B tests for model improvements.\n    \"\"\"\n    async def create_experiment(\n        self,\n        name: str,\n        variant_configs: List[dict],\n        traffic_split: List[float],\n        duration_days: int,",
+        "detail": "packages.skills_framework.evaluation.online",
+        "documentation": {}
+    },
+    {
+        "label": "OfflineEvaluator",
+        "kind": 6,
+        "importPath": "packages.skills_framework.evaluation.pipeline",
+        "description": "packages.skills_framework.evaluation.pipeline",
+        "peekOfCode": "class OfflineEvaluator:\n    \"\"\"\n    Run comprehensive offline evaluation.\n    \"\"\"\n    def __init__(self, langfuse_client: Langfuse = None):\n        self.langfuse = langfuse_client or Langfuse()\n        self.metrics = EvaluationMetrics()\n    async def evaluate_full_pipeline(\n        self,\n        test_dataset_name: str,",
+        "detail": "packages.skills_framework.evaluation.pipeline",
         "documentation": {}
     },
     {
@@ -11052,6 +11481,87 @@
         "description": "packages.skills_framework.skills.xlsx.recalc",
         "peekOfCode": "def main():\n    if len(sys.argv) < 2:\n        print(\"Usage: python recalc.py <excel_file> [timeout_seconds]\")\n        print(\"\\nRecalculates all formulas in an Excel file using LibreOffice\")\n        print(\"\\nReturns JSON with error details:\")\n        print(\"  - status: 'success' or 'errors_found'\")\n        print(\"  - total_errors: Total number of Excel errors found\")\n        print(\"  - total_formulas: Number of formulas in the file\")\n        print(\"  - error_summary: Breakdown by error type with locations\")\n        print(\"    - #VALUE!, #DIV/0!, #REF!, #NAME?, #NULL!, #NUM!, #N/A\")",
         "detail": "packages.skills_framework.skills.xlsx.recalc",
+        "documentation": {}
+    },
+    {
+        "label": "MessageStructuringState",
+        "kind": 6,
+        "importPath": "packages.skills_framework.structuring.agent",
+        "description": "packages.skills_framework.structuring.agent",
+        "peekOfCode": "class MessageStructuringState(TypedDict):\n    # Input\n    message: str\n    user_id: str\n    group_id: str\n    session_id: str\n    # Context\n    session_context: Optional[dict]\n    user_context: Optional[dict]\n    group_context: Optional[dict]",
+        "detail": "packages.skills_framework.structuring.agent",
+        "documentation": {}
+    },
+    {
+        "label": "build_agent",
+        "kind": 2,
+        "importPath": "packages.skills_framework.structuring.agent",
+        "description": "packages.skills_framework.structuring.agent",
+        "peekOfCode": "def build_agent(\n    postgres_checkpointer=None,\n    llm=None,\n    embedder=None\n):\n    \"\"\"\n    Constructs the LangGraph-based orchestration agent.\n    \"\"\"\n    # Initialize components\n    registry = TemplateRegistry()",
+        "detail": "packages.skills_framework.structuring.agent",
+        "documentation": {}
+    },
+    {
+        "label": "FieldExtractor",
+        "kind": 6,
+        "importPath": "packages.skills_framework.structuring.extractor",
+        "description": "packages.skills_framework.structuring.extractor",
+        "peekOfCode": "class FieldExtractor:\n    \"\"\"\n    Extracts structured fields from Hebrew text according to schema.\n    \"\"\"\n    def __init__(\n        self,\n        llm,\n        nlp_processor: HebrewNLPProcessor,\n        constrained_decoder=None\n    ):",
+        "detail": "packages.skills_framework.structuring.extractor",
+        "documentation": {}
+    },
+    {
+        "label": "GeoResolver",
+        "kind": 6,
+        "importPath": "packages.skills_framework.structuring.geo",
+        "description": "packages.skills_framework.structuring.geo",
+        "peekOfCode": "class GeoResolver:\n    \"\"\"\n    Resolves Hebrew location mentions to coordinates/polygons.\n    \"\"\"\n    def __init__(\n        self,\n        address_tool=None,  # e.g. mapping API tool wrapper\n        nlp_processor: HebrewNLPProcessor = None\n    ):\n        self.address_tool = address_tool",
+        "detail": "packages.skills_framework.structuring.geo",
+        "documentation": {}
+    },
+    {
+        "label": "MemoryManager",
+        "kind": 6,
+        "importPath": "packages.skills_framework.structuring.memory",
+        "description": "packages.skills_framework.structuring.memory",
+        "peekOfCode": "class MemoryManager:\n    \"\"\"\n    Manages session, user, group, and organizational memory.\n    \"\"\"\n    def __init__(\n        self,\n        postgres_checkpointer=None,\n        vector_db=None,\n        redis_cache=None\n    ):",
+        "detail": "packages.skills_framework.structuring.memory",
+        "documentation": {}
+    },
+    {
+        "label": "HebrewNLPProcessor",
+        "kind": 6,
+        "importPath": "packages.skills_framework.structuring.nlp",
+        "description": "packages.skills_framework.structuring.nlp",
+        "peekOfCode": "class HebrewNLPProcessor:\n    \"\"\"\n    Handles Hebrew-specific NLP tasks with optional RAG integration.\n    \"\"\"\n    def __init__(self, rag_tool=None, spacy_model: str = \"he_core_news_lg\"):\n        self.rag_tool = rag_tool\n        self.spacy_model = spacy_model\n        # Lazy load spacy to avoid blocking startup if not installed yet\n        self._nlp = None\n    def _get_nlp(self):",
+        "detail": "packages.skills_framework.structuring.nlp",
+        "documentation": {}
+    },
+    {
+        "label": "TemplateRegistry",
+        "kind": 6,
+        "importPath": "packages.skills_framework.structuring.registry",
+        "description": "packages.skills_framework.structuring.registry",
+        "peekOfCode": "class TemplateRegistry:\n    \"\"\"\n    Manages storage, retrieval, and versioning of message templates.\n    \"\"\"\n    def __init__(self, db_url: str = None):\n        # In a real on-prem deploy, this connects to PostgreSQL using asyncpg + SQLAlchemy\n        self.db_url = db_url or os.getenv(\"DATABASE_URL\")\n        self._mock_db = {} # template_id -> template_data\n        self._mock_versions = {} # template_id -> list of versions\n    async def register_template(",
+        "detail": "packages.skills_framework.structuring.registry",
+        "documentation": {}
+    },
+    {
+        "label": "TemplateRouter",
+        "kind": 6,
+        "importPath": "packages.skills_framework.structuring.routing",
+        "description": "packages.skills_framework.structuring.routing",
+        "peekOfCode": "class TemplateRouter:\n    \"\"\"\n    Routes messages to the most appropriate template.\n    \"\"\"\n    def __init__(self, template_registry: TemplateRegistry, embedder=None, llm=None):\n        self.registry = template_registry\n        self.embedder = embedder # e.g. HuggingFaceEmbeddings\n        self.llm = llm # ChatOpenAI or similar\n    async def route(\n        self,",
+        "detail": "packages.skills_framework.structuring.routing",
+        "documentation": {}
+    },
+    {
+        "label": "ValidationEngine",
+        "kind": 6,
+        "importPath": "packages.skills_framework.structuring.validation",
+        "description": "packages.skills_framework.structuring.validation",
+        "peekOfCode": "class ValidationEngine:\n    \"\"\"\n    Validates extracted data and manages human-in-the-loop triggers.\n    \"\"\"\n    async def validate(\n        self,\n        extracted_data: dict,\n        schema: dict,\n        validation_rules: Optional[dict] = None\n    ) -> dict:",
+        "detail": "packages.skills_framework.structuring.validation",
         "documentation": {}
     },
     {
