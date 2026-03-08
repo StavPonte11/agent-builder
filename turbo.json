@@ -1,0 +1,55 @@
+{
+    "$schema": "https://turbo.build/schema.json",
+    "ui": "tui",
+    "tasks": {
+        "codegen": {
+            "inputs": [
+                "../../packages/shared-types/scripts/**"
+            ],
+            "outputs": [
+                "../../packages/shared-types/src/api.d.ts"
+            ],
+            "cache": false
+        },
+        "build": {
+            "dependsOn": [
+                "^build",
+                "codegen"
+            ],
+            "inputs": [
+                "src/**",
+                "tsconfig.json",
+                "vite.config.ts",
+                "package.json"
+            ],
+            "outputs": [
+                "dist/**"
+            ]
+        },
+        "dev": {
+            "cache": false,
+            "persistent": true
+        },
+        "lint": {
+            "dependsOn": [
+                "^lint"
+            ]
+        },
+        "test": {
+            "dependsOn": [
+                "^build"
+            ],
+            "inputs": [
+                "src/**",
+                "tests/**",
+                "test/**"
+            ],
+            "outputs": [
+                "coverage/**"
+            ]
+        },
+        "clean": {
+            "cache": false
+        }
+    }
+}

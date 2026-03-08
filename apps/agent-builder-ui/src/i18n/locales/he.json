@@ -1,0 +1,85 @@
+{
+    "nav": {
+        "dashboard": "לוח בקרה",
+        "blueprints": "תוכניות",
+        "executions": "הרצות",
+        "approvals": "אישורים",
+        "analytics": "ניתוח",
+        "templates": "תבניות",
+        "skills": "כישורים",
+        "tools": "כלים",
+        "settings": "הגדרות"
+    },
+    "auth": {
+        "login": "התחברות",
+        "register": "יצירת חשבון",
+        "email": "דואר אלקטרוני",
+        "password": "סיסמה",
+        "org_name": "שם ארגון",
+        "logout": "התנתקות",
+        "invalid_credentials": "כתובת דואר אלקטרוני או סיסמה שגויים"
+    },
+    "blueprint": {
+        "new": "תוכנית חדשה",
+        "save": "שמירה",
+        "publish": "פרסום",
+        "run_sandbox": "הרצה בסביבת בדיקות",
+        "test_suite": "חבילת בדיקות",
+        "status": {
+            "draft": "טיוטה",
+            "testing": "בבדיקה",
+            "pending_approval": "ממתין לאישור",
+            "published": "מפורסם",
+            "archived": "בארכיון"
+        },
+        "type": {
+            "workflow": "תהליך עבודה",
+            "agent": "סוכן"
+        }
+    },
+    "nodes": {
+        "trigger": "טריגר",
+        "llm": "מודל שפה",
+        "tool": "כלי",
+        "condition": "תנאי",
+        "router": "נתב",
+        "memory_read": "קריאת זיכרון",
+        "memory_write": "כתיבת זיכרון",
+        "approval": "שער אישור",
+        "code": "קוד",
+        "output": "פלט"
+    },
+    "execution": {
+        "status": {
+            "pending": "ממתין",
+            "running": "מתבצע",
+            "paused": "מושהה",
+            "completed": "הושלם",
+            "failed": "נכשל",
+            "cancelled": "בוטל",
+            "timed_out": "תם הזמן"
+        },
+        "approve": "אישור",
+        "reject": "דחייה",
+        "approval_required": "נדרש אישור אנושי"
+    },
+    "common": {
+        "loading": "טוען...",
+        "error": "אירעה שגיאה",
+        "save": "שמירה",
+        "cancel": "ביטול",
+        "delete": "מחיקה",
+        "edit": "עריכה",
+        "view": "צפייה",
+        "back": "חזרה",
+        "next": "הבא",
+        "submit": "שליחה",
+        "confirm": "אישור",
+        "search": "חיפוש",
+        "filter": "סינון",
+        "export": "ייצוא",
+        "no_results": "לא נמצאו תוצאות",
+        "tokens": "טוקנים",
+        "cost": "עלות"
+    }
+}

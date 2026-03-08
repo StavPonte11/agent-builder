@@ -1,0 +1,85 @@
+{
+    "nav": {
+        "dashboard": "Dashboard",
+        "blueprints": "Blueprints",
+        "executions": "Executions",
+        "approvals": "Approvals",
+        "analytics": "Analytics",
+        "templates": "Templates",
+        "skills": "Skills",
+        "tools": "Tools",
+        "settings": "Settings"
+    },
+    "auth": {
+        "login": "Sign In",
+        "register": "Create Account",
+        "email": "Email",
+        "password": "Password",
+        "org_name": "Organization Name",
+        "logout": "Sign Out",
+        "invalid_credentials": "Invalid email or password"
+    },
+    "blueprint": {
+        "new": "New Blueprint",
+        "save": "Save",
+        "publish": "Publish",
+        "run_sandbox": "Run in Sandbox",
+        "test_suite": "Test Suite",
+        "status": {
+            "draft": "Draft",
+            "testing": "Testing",
+            "pending_approval": "Awaiting Review",
+            "published": "Published",
+            "archived": "Archived"
+        },
+        "type": {
+            "workflow": "Workflow",
+            "agent": "Agent"
+        }
+    },
+    "nodes": {
+        "trigger": "Trigger",
+        "llm": "LLM",
+        "tool": "Tool",
+        "condition": "Condition",
+        "router": "Router",
+        "memory_read": "Memory Read",
+        "memory_write": "Memory Write",
+        "approval": "Approval Gate",
+        "code": "Code",
+        "output": "Output"
+    },
+    "execution": {
+        "status": {
+            "pending": "Pending",
+            "running": "Running",
+            "paused": "Paused",
+            "completed": "Completed",
+            "failed": "Failed",
+            "cancelled": "Cancelled",
+            "timed_out": "Timed Out"
+        },
+        "approve": "Approve",
+        "reject": "Reject",
+        "approval_required": "Human Approval Required"
+    },
+    "common": {
+        "loading": "Loading...",
+        "error": "An error occurred",
+        "save": "Save",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "edit": "Edit",
+        "view": "View",
+        "back": "Back",
+        "next": "Next",
+        "submit": "Submit",
+        "confirm": "Confirm",
+        "search": "Search",
+        "filter": "Filter",
+        "export": "Export",
+        "no_results": "No results found",
+        "tokens": "tokens",
+        "cost": "cost"
+    }
+}

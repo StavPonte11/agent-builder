@@ -1,0 +1,69 @@
+import { lazy, Suspense } from 'react'
+import { Routes, Route, Navigate } from 'react-router-dom'
+import { useAuthStore } from '@/stores/authStore'
+
+// Lazy-loaded route modules
+const LoginPage = lazy(() => import('@/pages/auth/LoginPage'))
+const RegisterPage = lazy(() => import('@/pages/auth/RegisterPage'))
+const PlatformLayout = lazy(() => import('@/layouts/PlatformLayout'))
+const DashboardPage = lazy(() => import('@/pages/dashboard/DashboardPage'))
+const BlueprintsPage = lazy(() => import('@/pages/blueprints/BlueprintsPage'))
+const BuilderPage = lazy(() => import('@/pages/blueprints/BuilderPage'))
+const ExecutionsPage = lazy(() => import('@/pages/executions/ExecutionsPage'))
+const ApprovalsPage = lazy(() => import('@/pages/approvals/ApprovalsPage'))
+const AnalyticsPage = lazy(() => import('@/pages/analytics/AnalyticsPage'))
+const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage'))
+const TemplatesPage = lazy(() => import('@/pages/templates/TemplatesPage'))
+const SkillsPage = lazy(() => import('@/pages/skills/SkillsPage'))
+const ToolsPage = lazy(() => import('@/pages/tools/ToolsPage'))
+
+/** Guard: redirects to login if not authenticated */
+function PrivateRoute({ children }: { children: React.ReactNode }) {
+    const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+    return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />
+}
+
+/** Guard: redirects to dashboard if already authenticated */
+function PublicRoute({ children }: { children: React.ReactNode }) {
+    const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+    return isAuthenticated ? <Navigate to="/dashboard" replace /> : <>{children}</>
+}
+
+const LoadingFallback = () => (
+    <div className="flex h-screen items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-primary" />
+    </div>
+)
+
+export default function App() {
+    return (
+        <Suspense fallback={<LoadingFallback />}>
+            <Routes>
+                {/* Public routes (auth) */}
+                <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+                <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
+
+                {/* Platform routes (authenticated) */}
+                <Route
+                    path="/"
+                    element={<PrivateRoute><PlatformLayout /></PrivateRoute>}
+                >
+                    <Route index element={<Navigate to="/dashboard" replace />} />
+                    <Route path="dashboard" element={<DashboardPage />} />
+                    <Route path="blueprints" element={<BlueprintsPage />} />
+                    <Route path="blueprints/:id" element={<BuilderPage />} />
+                    <Route path="executions" element={<ExecutionsPage />} />
+                    <Route path="approvals" element={<ApprovalsPage />} />
+                    <Route path="analytics" element={<AnalyticsPage />} />
+                    <Route path="templates" element={<TemplatesPage />} />
+                    <Route path="skills" element={<SkillsPage />} />
+                    <Route path="tools" element={<ToolsPage />} />
+                    <Route path="settings" element={<SettingsPage />} />
+                </Route>
+
+                {/* Fallback */}
+                <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
+        </Suspense>
+    )
+}

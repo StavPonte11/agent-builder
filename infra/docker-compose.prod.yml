@@ -1,0 +1,59 @@
+version: "3.9"
+
+services:
+  api:
+    deploy:
+      replicas: 3
+      restart_policy:
+        condition: on-failure
+    build:
+      target: production
+    command: ["uv", "run", "gunicorn", "app.main:app", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000"]
+    volumes: []  # No hot-reload in production
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+
+  temporal-worker:
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+    build:
+      target: production
+    volumes: []
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  celery-worker:
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+    build:
+      target: production
+    command: ["uv", "run", "celery", "-A", "app.celery_app", "worker", "--loglevel=warning", "-Q", "default,webhooks,cache,reports", "--concurrency=8"]
+    volumes: []
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  ui:
+    build:
+      target: production
+    command: ["node", "server.js"]
+    volumes: []
+    environment:
+      NODE_ENV: production

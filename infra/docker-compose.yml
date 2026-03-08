@@ -1,0 +1,273 @@
+version: "3.9"
+
+volumes:
+  postgres_data:
+  redis_data:
+  temporal_data:
+
+networks:
+  agent_net:
+    driver: bridge
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL 16
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: agent_postgres
+    restart: unless-stopped
+    networks: [agent_net]
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-agent_builder}
+      POSTGRES_USER: ${POSTGRES_USER:-agent}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret}
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-agent} -d ${POSTGRES_DB:-agent_builder}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # Redis 7
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: agent_redis
+    restart: unless-stopped
+    networks: [agent_net]
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # Temporal Server (auto-setup — uses embedded Postgres)
+  # ---------------------------------------------------------------------------
+  temporal:
+    image: temporalio/auto-setup:1.24
+    container_name: agent_temporal
+    restart: unless-stopped
+    networks: [agent_net]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB: postgresql
+      DB_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-agent}
+      POSTGRES_PWD: ${POSTGRES_PASSWORD:-secret}
+      POSTGRES_SEEDS: postgres
+      DYNAMIC_CONFIG_FILE_PATH: /etc/temporal/config/dynamicconfig/docker.yaml
+      ENABLE_ES: "false"
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_NAMESPACE: default
+    ports:
+      - "7233:7233"
+    volumes:
+      - temporal_data:/etc/temporal/config/dynamicconfig
+    healthcheck:
+      test: ["CMD", "tctl", "--address", "temporal:7233", "cluster", "health"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  # ---------------------------------------------------------------------------
+  # Temporal UI
+  # ---------------------------------------------------------------------------
+  temporal-ui:
+    image: temporalio/ui:2.26.2
+    container_name: agent_temporal_ui
+    restart: unless-stopped
+    networks: [agent_net]
+    depends_on:
+      - temporal
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_CORS_ORIGINS: http://localhost:5173
+    ports:
+      - "8233:8080"
+
+  # ---------------------------------------------------------------------------
+  # Langfuse (self-hosted observability)
+  # ---------------------------------------------------------------------------
+  langfuse:
+    image: langfuse/langfuse:2
+    container_name: agent_langfuse
+    restart: unless-stopped
+    networks: [agent_net]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-agent}:${POSTGRES_PASSWORD:-secret}@postgres:5432/langfuse
+      NEXTAUTH_URL: http://localhost:3100
+      NEXTAUTH_SECRET: ${LANGFUSE_NEXTAUTH_SECRET:-change-me-langfuse-nextauth-secret}
+      SALT: ${LANGFUSE_SALT:-change-me-langfuse-salt}
+      TELEMETRY_ENABLED: "false"
+      NEXT_PUBLIC_SIGN_UP_DISABLED: "false"
+    ports:
+      - "3100:3000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/public/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  # ---------------------------------------------------------------------------
+  # FastAPI Backend
+  # ---------------------------------------------------------------------------
+  api:
+    build:
+      context: ../apps/agent-builder-backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: agent_api
+    restart: unless-stopped
+    networks: [agent_net]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      temporal:
+        condition: service_started
+    volumes:
+      - ../apps/agent-builder-backend:/app
+      - ../keys:/keys:ro
+    environment:
+      APP_ENV: development
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-agent}:${POSTGRES_PASSWORD:-secret}@postgres:5432/${POSTGRES_DB:-agent_builder}
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      TEMPORAL_HOST: temporal:7233
+      LANGFUSE_HOST: http://langfuse:3000
+      JWT_PRIVATE_KEY_PATH: /keys/private.pem
+      JWT_PUBLIC_KEY_PATH: /keys/public.pem
+      ALLOWED_ORIGINS: "http://localhost:5173,http://localhost:3000"
+    env_file:
+      - ../.env
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # Temporal Worker
+  # ---------------------------------------------------------------------------
+  temporal-worker:
+    build:
+      context: ../apps/agent-builder-backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: agent_temporal_worker
+    restart: unless-stopped
+    networks: [agent_net]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      temporal:
+        condition: service_started
+    volumes:
+      - ../apps/agent-builder-backend:/app
+      - ../keys:/keys:ro
+    command: ["uv", "run", "python", "-m", "app.temporal.worker"]
+    environment:
+      APP_ENV: development
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-agent}:${POSTGRES_PASSWORD:-secret}@postgres:5432/${POSTGRES_DB:-agent_builder}
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      TEMPORAL_HOST: temporal:7233
+      LANGFUSE_HOST: http://langfuse:3000
+      JWT_PRIVATE_KEY_PATH: /keys/private.pem
+      JWT_PUBLIC_KEY_PATH: /keys/public.pem
+    env_file:
+      - ../.env
+
+  # ---------------------------------------------------------------------------
+  # Celery Worker
+  # ---------------------------------------------------------------------------
+  celery-worker:
+    build:
+      context: ../apps/agent-builder-backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: agent_celery_worker
+    restart: unless-stopped
+    networks: [agent_net]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ../apps/agent-builder-backend:/app
+    command: ["uv", "run", "celery", "-A", "app.celery_app", "worker", "--loglevel=info", "-Q", "default,webhooks,cache,reports", "--concurrency=4"]
+    environment:
+      APP_ENV: development
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-agent}:${POSTGRES_PASSWORD:-secret}@postgres:5432/${POSTGRES_DB:-agent_builder}
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+    env_file:
+      - ../.env
+
+  # ---------------------------------------------------------------------------
+  # Flower (Celery monitoring)
+  # ---------------------------------------------------------------------------
+  flower:
+    build:
+      context: ../apps/agent-builder-backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: agent_flower
+    restart: unless-stopped
+    networks: [agent_net]
+    depends_on:
+      - redis
+    command: ["uv", "run", "celery", "-A", "app.celery_app", "flower", "--port=5555", "--broker=redis://redis:6379/1"]
+    ports:
+      - "5555:5555"
+
+  # ---------------------------------------------------------------------------
+  # Vite Frontend Dev Server
+  # ---------------------------------------------------------------------------
+  ui:
+    build:
+      context: ../apps/agent-builder-ui
+      dockerfile: Dockerfile
+      target: development
+    container_name: agent_ui
+    restart: unless-stopped
+    networks: [agent_net]
+    depends_on:
+      - api
+    volumes:
+      - ../apps/agent-builder-ui:/app
+      - /app/node_modules
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000
+      VITE_WS_BASE_URL: ws://localhost:8000
+      VITE_LANGFUSE_HOST: http://localhost:3100
+    ports:
+      - "5173:5173"

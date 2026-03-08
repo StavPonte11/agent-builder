@@ -1,0 +1,212 @@
+/* ============================================================
+   Agent Builder Platform — Global Design System
+   Industrial Precision meets Dark Intelligence
+   ============================================================ */
+
+/* --- Google Fonts (loaded via Fontsource packages) --- */
+@import '@fontsource-variable/bricolage-grotesque';
+@import '@fontsource-variable/geist';
+@import '@fontsource/dm-mono/400.css';
+@import '@fontsource/dm-mono/500.css';
+@import '@fontsource/dm-serif-display/400.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   CSS Custom Properties (Design Tokens)
+   ============================================================ */
+@layer base {
+  :root {
+    /* Backgrounds */
+    --background:    215 33% 5%;     /* #080C14 deep navy-black */
+    --surface:       220 30% 9%;     /* #0F1624 */
+    --card:          218 27% 14%;    /* #162032 */
+    --card-foreground: 214 32% 91%;  /* text on card */
+    --border:        218 24% 18%;    /* #1E2D42 */
+    --border-strong: 214 30% 26%;    /* #2A3F5A */
+
+    /* Accent colors */
+    --accent-primary:             221 83% 53%;   /* #2563EB electric blue */
+    --accent-primary-foreground:  0 0% 100%;
+    --accent-success:             160 84% 39%;   /* #059669 emerald */
+    --accent-warning:             32 94% 44%;    /* #D97706 amber */
+    --accent-danger:              0 72% 51%;     /* #DC2626 red */
+    --accent-purple:              262 79% 55%;   /* #7C3AED violet */
+    --accent-cyan:                193 87% 37%;   /* #0891B2 cyan */
+    --accent-orange:              23 89% 50%;    /* #EA580C orange */
+
+    /* Text */
+    --text-primary:   214 32% 91%;   /* #E2E8F0 */
+    --text-secondary: 215 20% 65%;   /* #94A3B8 */
+    --text-dim:       215 19% 35%;   /* #475569 */
+
+    /* Node type accent colors */
+    --node-llm:       262 79% 55%;   /* purple */
+    --node-tool:      193 87% 37%;   /* cyan */
+    --node-condition: 23 89% 50%;    /* orange */
+    --node-memory:    160 84% 39%;   /* green */
+    --node-approval:  0 72% 51%;     /* red */
+    --node-trigger:   221 83% 53%;   /* blue */
+    --node-output:    32 94% 44%;    /* amber */
+
+    /* shadcn/ui compatibility */
+    --radius: 0.5rem;
+
+    /* Glow helper (overridden per component) */
+    --glow-color: hsl(var(--accent-primary) / 0.4);
+  }
+
+  /* Force dark mode — no light mode variant */
+  * {
+    @apply border-border;
+  }
+
+  html {
+    color-scheme: dark;
+    scrollbar-color: hsl(var(--border-strong)) hsl(var(--surface));
+    scrollbar-width: thin;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    background-image:
+      radial-gradient(ellipse at 20% 0%, hsl(var(--accent-primary) / 0.04) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 100%, hsl(var(--accent-purple) / 0.03) 0%, transparent 50%);
+    background-attachment: fixed;
+  }
+
+  /* Headings use the grotesque font */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading;
+  }
+
+  /* Code elements use mono */
+  code, pre, kbd, samp {
+    @apply font-mono;
+  }
+
+  /* Smooth scrolling */
+  * {
+    scroll-behavior: smooth;
+  }
+
+  /* Custom scrollbars */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--surface));
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border-strong));
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--text-dim));
+  }
+}
+
+/* ============================================================
+   React Flow — custom canvas theming
+   ============================================================ */
+@layer components {
+  .react-flow {
+    @apply bg-background;
+  }
+
+  .react-flow__background pattern circle {
+    fill: hsl(var(--border));
+  }
+
+  .react-flow__edge-path {
+    stroke: hsl(var(--border-strong));
+    stroke-width: 1.5;
+  }
+
+  .react-flow__edge.selected .react-flow__edge-path,
+  .react-flow__edge:focus .react-flow__edge-path {
+    stroke: hsl(var(--accent-primary));
+  }
+
+  /* Animated edge when execution is running */
+  .react-flow__edge.executing .react-flow__edge-path {
+    stroke: hsl(var(--accent-primary));
+    stroke-dasharray: 10 5;
+    animation: flow-edge 0.8s linear infinite;
+  }
+
+  .react-flow__handle {
+    @apply border-border bg-surface;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid hsl(var(--border-strong));
+    transition: border-color 0.15s, transform 0.15s;
+  }
+
+  .react-flow__handle:hover {
+    border-color: hsl(var(--accent-primary));
+    transform: scale(1.2);
+  }
+
+  .react-flow__node.selected > div {
+    ring: 2px solid hsl(var(--accent-primary));
+    box-shadow: 0 0 0 2px hsl(var(--accent-primary));
+  }
+
+  .react-flow__minimap {
+    background: hsl(var(--card)) !important;
+    border: 1px solid hsl(var(--border)) !important;
+    border-radius: var(--radius);
+  }
+
+  .react-flow__controls {
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+  }
+
+  .react-flow__controls-button {
+    background: transparent;
+    border: none;
+    color: hsl(var(--text-secondary));
+  }
+
+  .react-flow__controls-button:hover {
+    background: hsl(var(--border));
+    color: hsl(var(--text-primary));
+  }
+}
+
+/* ============================================================
+   Utility classes
+   ============================================================ */
+@layer utilities {
+  /* Text gradient */
+  .text-gradient-primary {
+    background: linear-gradient(135deg, hsl(var(--accent-primary)), hsl(var(--accent-cyan)));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Glassmorphism card */
+  .glass {
+    background: hsl(var(--card) / 0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid hsl(var(--border));
+  }
+
+  /* Glow border */
+  .glow-border {
+    box-shadow: 0 0 0 1px hsl(var(--accent-primary) / 0.3), inset 0 0 0 1px hsl(var(--accent-primary) / 0.1);
+  }
+
+  /* RTL support */
+  [dir='rtl'] .rtl-flip {
+    transform: scaleX(-1);
+  }
+}

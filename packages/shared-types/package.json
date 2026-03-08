@@ -1,0 +1,16 @@
+{
+    "name": "@agent-builder/shared-types",
+    "version": "0.1.0",
+    "private": true,
+    "description": "Auto-generated TypeScript types from FastAPI OpenAPI spec",
+    "main": "./src/index.ts",
+    "types": "./src/index.ts",
+    "scripts": {
+        "codegen": "bash scripts/codegen.sh",
+        "typecheck": "tsc --noEmit"
+    },
+    "devDependencies": {
+        "openapi-typescript": "^7.4.0",
+        "typescript": "^5.7.3"
+    }
+}
