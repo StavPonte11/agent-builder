@@ -8,6 +8,8 @@
  *   cd packages/shared-types && npm run codegen
  */
 
+import { components, paths } from './api.js'
+
 // Auto-generated file — regenerate with: npm run codegen
 // Source: FastAPI /openapi.json endpoint
 export type { paths, components, operations, webhooks } from './api.js'
@@ -18,34 +20,34 @@ export type { paths, components, operations, webhooks } from './api.js'
 
 /** Extract the JSON request body type for a given path + method. */
 export type RequestBody<
-  P extends keyof paths,
-  M extends keyof paths[P],
+    P extends keyof paths,
+    M extends keyof paths[P],
 > = paths[P][M] extends {
-  requestBody?: { content: { 'application/json': infer B } }
+    requestBody?: { content: { 'application/json': infer B } }
 }
-  ? B
-  : never
+    ? B
+    : never
 
 /** Extract the 200 response body type for a given path + method. */
 export type ResponseBody<
-  P extends keyof paths,
-  M extends keyof paths[P],
+    P extends keyof paths,
+    M extends keyof paths[P],
 > = paths[P][M] extends {
-  responses: { 200: { content: { 'application/json': infer R } } }
+    responses: { 200: { content: { 'application/json': infer R } } }
 }
-  ? R
-  : never
+    ? R
+    : never
 
 /** Extract the 201 response body type for a given path + method. */
 export type CreatedBody<
-  P extends keyof paths,
-  M extends keyof paths[P],
+    P extends keyof paths,
+    M extends keyof paths[P],
 > = paths[P][M] extends {
-  responses: { 201: { content: { 'application/json': infer R } } }
+    responses: { 201: { content: { 'application/json': infer R } } }
 }
-  ? R
-  : never
+    ? R
+    : never
 
 /** Shorthand for schema components */
 export type Schema<K extends keyof components['schemas']> =
-  components['schemas'][K]
+    components['schemas'][K]

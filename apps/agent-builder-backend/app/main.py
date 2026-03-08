@@ -13,12 +13,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.api.v1.router import api_v1_router
-from app.api.ws.execution import ws_router
+from app.api.v1.websockets import router as ws_router
+from app.api.v1.metrics import router as metrics_router, PrometheusMiddleware
 from app.config import settings
 from app.database import engine
 from app.middleware.rate_limit import RateLimitMiddleware
 from app.middleware.request_id import RequestIdMiddleware
-from app.redis_client import get_redis_client
+from app.core.redis import get_redis_client
 
 logger = structlog.get_logger()
 
@@ -52,8 +53,8 @@ def create_app() -> FastAPI:
         title="Agent Builder Platform",
         description="Centralized Agent & Workflow Builder — API",
         version="0.1.0",
-        docs_url="/docs" if settings.APP_ENV != "production" else None,
-        redoc_url="/redoc" if settings.APP_ENV != "production" else None,
+        docs_url="/docs",
+        redoc_url="/redoc",
         openapi_url="/openapi.json",
         lifespan=lifespan,
     )
@@ -61,6 +62,9 @@ def create_app() -> FastAPI:
     # ------------------------------------------------------------------
     # Middleware (order matters — outermost first)
     # ------------------------------------------------------------------
+
+    # Prometheus Tracking
+    app.add_middleware(PrometheusMiddleware)
 
     # 1. Request ID — injects X-Request-ID on every request
     app.add_middleware(RequestIdMiddleware)
@@ -90,9 +94,11 @@ def create_app() -> FastAPI:
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Content-Security-Policy"] = (
-            "default-src 'self'; script-src 'self' 'unsafe-inline'; "
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-            "font-src 'self' https://fonts.gstatic.com;"
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; "
+            "font-src 'self' https://fonts.gstatic.com; "
+            "img-src 'self' data: https://fastapi.tiangolo.com;"
         )
         return response
 
@@ -118,7 +124,8 @@ def create_app() -> FastAPI:
     # Routers
     # ------------------------------------------------------------------
     app.include_router(api_v1_router, prefix="/api/v1")
-    app.include_router(ws_router)
+    app.include_router(ws_router, prefix="/api/v1/ws")
+    app.include_router(metrics_router)
 
     # ------------------------------------------------------------------
     # Health endpoint

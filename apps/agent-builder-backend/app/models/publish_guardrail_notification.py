@@ -110,7 +110,7 @@ class Notification(TimestampedBase):
     type: Mapped[str] = mapped_column(String(100), nullable=False)
     title: Mapped[str] = mapped_column(String(500), nullable=False)
     body: Mapped[str] = mapped_column(String(5000), nullable=False, default="")
-    metadata: Mapped[dict] = mapped_column(
+    meta_data: Mapped[dict] = mapped_column(
         JSONB, nullable=False, default=dict, name="notification_metadata"
     )
     is_read: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, index=True)

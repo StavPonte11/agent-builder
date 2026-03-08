@@ -14,14 +14,14 @@ WORKDIR /app
 
 # ---------------------------------------------------------------------------
 FROM base AS development
-COPY pyproject.toml .
+COPY pyproject.toml README.md ./
 RUN uv sync
 COPY . .
 CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
 # ---------------------------------------------------------------------------
 FROM base AS production
-COPY pyproject.toml .
+COPY pyproject.toml README.md ./
 RUN uv sync --no-dev
 COPY . .
 CMD ["uv", "run", "gunicorn", "app.main:app", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000"]

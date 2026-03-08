@@ -1,25 +1,22 @@
-version: "3.9"
-
 services:
   api:
     deploy:
       replicas: 3
       restart_policy:
         condition: on-failure
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
     build:
       target: production
     command: ["uv", "run", "gunicorn", "app.main:app", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000"]
-    volumes: []  # No hot-reload in production
+    volumes: []
     logging:
       driver: "json-file"
       options:
         max-size: "100m"
         max-file: "5"
-    deploy:
-      resources:
-        limits:
-          cpus: "2"
-          memory: 2G
 
   temporal-worker:
     deploy:
@@ -52,8 +49,9 @@ services:
 
   ui:
     build:
+      context: ..
+      dockerfile: apps/agent-builder-ui/Dockerfile
       target: production
-    command: ["node", "server.js"]
     volumes: []
     environment:
       NODE_ENV: production

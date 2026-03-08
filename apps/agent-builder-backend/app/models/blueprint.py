@@ -62,7 +62,7 @@ class Blueprint(TimestampedBase):
         UUID(as_uuid=True), ForeignKey("blueprints.id"), nullable=True
     )
     tags: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
-    metadata: Mapped[dict] = mapped_column(
+    meta_data: Mapped[dict] = mapped_column(
         JSONB, nullable=False, default=dict, name="blueprint_metadata"
     )
 

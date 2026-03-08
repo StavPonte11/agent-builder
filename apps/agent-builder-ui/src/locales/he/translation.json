@@ -1,0 +1,19 @@
+{
+    "nav": {
+        "dashboard": "לוח בקרה",
+        "blueprints": "מסמכי תכנון",
+        "executions": "פעולות",
+        "settings": "הגדרות"
+    },
+    "dashboard": {
+        "title": "שליטת מינאל",
+        "subtitle": "סקירה של ביצועי הסוכן שלך."
+    },
+    "common": {
+        "save": "שמור",
+        "cancel": "ביטול",
+        "publish": "פרסם",
+        "test": "בדיקה",
+        "search": "חפש..."
+    }
+}

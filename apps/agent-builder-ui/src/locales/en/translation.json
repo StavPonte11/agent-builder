@@ -1,0 +1,19 @@
+{
+    "nav": {
+        "dashboard": "Dashboard",
+        "blueprints": "Blueprints",
+        "executions": "Executions",
+        "settings": "Settings"
+    },
+    "dashboard": {
+        "title": "Terminal Control",
+        "subtitle": "Overview of your agent's performance."
+    },
+    "common": {
+        "save": "Save",
+        "cancel": "Cancel",
+        "publish": "Publish",
+        "test": "Test",
+        "search": "Search..."
+    }
+}

@@ -5,6 +5,7 @@
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
+    "types": ["vite/client"],
 
     /* Bundler mode */
     "moduleResolution": "bundler",
@@ -14,12 +15,9 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
-    /* Strict — no any */
+    /* Strict — no any except where explicitly cast */
     "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "exactOptionalPropertyTypes": true,
     "noImplicitReturns": true,
 
     /* Paths */

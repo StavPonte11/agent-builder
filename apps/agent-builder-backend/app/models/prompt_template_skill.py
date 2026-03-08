@@ -30,7 +30,7 @@ class BasePrompt(TimestampedBase):
     content: Mapped[str] = mapped_column(String(50_000), nullable=False)
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
-    metadata: Mapped[dict] = mapped_column(
+    meta_data: Mapped[dict] = mapped_column(
         JSONB, nullable=False, default=dict, name="prompt_metadata"
     )
 

@@ -1,83 +1,109 @@
-import { useQuery } from '@tanstack/react-query'
-import { motion } from 'framer-motion'
-import { Workflow, Play, Clock, DollarSign, CheckCircle, AlertCircle } from 'lucide-react'
-import { useTranslation } from 'react-i18next'
-import { formatNumber, formatUsd } from '@/lib/utils'
 
-interface MetricCardProps {
-    icon: React.ComponentType<{ className?: string }>
-    label: string
-    value: string
-    trend?: string
-    color: string
-}
+import { MetricCard } from '@/components/ui/metric-card'
+import { Activity, Clock, FileText, Settings, Users } from 'lucide-react'
+import {
+    LineChart,
+    Line,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    ResponsiveContainer,
+    AreaChart,
+    Area,
+} from 'recharts'
 
-function MetricCard({ icon: Icon, label, value, trend, color }: MetricCardProps) {
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="rounded-lg border border-border bg-card p-4 hover:border-border-strong transition-colors hover:shadow-lg hover:shadow-black/20"
-        >
-            <div className="flex items-start justify-between">
-                <div>
-                    <p className="text-xs text-muted-foreground font-medium">{label}</p>
-                    <p className="mt-1.5 text-2xl font-heading font-semibold text-foreground">{value}</p>
-                    {trend && <p className="mt-1 text-xs text-success">{trend}</p>}
-                </div>
-                <div className={`rounded-md p-2 ${color}`}>
-                    <Icon className="h-4 w-4 text-white" />
-                </div>
-            </div>
-        </motion.div>
-    )
-}
+const chartData = [
+    { name: 'Mon', executions: 400, errors: 24 },
+    { name: 'Tue', executions: 300, errors: 13 },
+    { name: 'Wed', executions: 550, errors: 45 },
+    { name: 'Thu', executions: 278, errors: 10 },
+    { name: 'Fri', executions: 189, errors: 5 },
+    { name: 'Sat', executions: 239, errors: 18 },
+    { name: 'Sun', executions: 349, errors: 20 },
+]
 
 export default function DashboardPage() {
-    const { t } = useTranslation()
-
-    // Placeholder metrics — will be fetched from API once backend routes are wired
-    const metrics = [
-        { icon: Workflow, label: 'Active Blueprints', value: '0', color: 'bg-primary' },
-        { icon: Play, label: 'Executions (30d)', value: '0', color: 'bg-success' },
-        { icon: CheckCircle, label: 'Success Rate', value: '—', color: 'bg-cyan' },
-        { icon: Clock, label: 'Avg Latency', value: '—', color: 'bg-purple' },
-        { icon: DollarSign, label: 'Total Cost (30d)', value: '$0.00', color: 'bg-warning' },
-        { icon: AlertCircle, label: 'Pending Approvals', value: '0', color: 'bg-danger' },
-    ]
-
     return (
-        <div className="p-6 space-y-6">
-            <div>
-                <h1 className="font-heading text-2xl font-semibold text-foreground">Dashboard</h1>
-                <p className="mt-1 text-sm text-muted-foreground">Welcome to Agent Builder</p>
-            </div>
+        <>
+            <div className="flex flex-col gap-6">
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight text-foreground">Dashboard</h1>
+                    <p className="text-sm text-muted-foreground">Welcome back! Here's an overview of your agents.</p>
+                </div>
 
-            {/* Metrics grid */}
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-                {metrics.map((m, i) => (
-                    <MetricCard key={m.label} {...m} />
-                ))}
-            </div>
+                {/* Key Metrics */}
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <MetricCard
+                        label="Total Executions"
+                        value="12,403"
+                        icon={Activity}
+                        trend={{ value: 12.5, label: "vs last week" }}
+                    />
+                    <MetricCard
+                        label="Active Blueprints"
+                        value="8"
+                        icon={FileText}
+                        trend={{ value: 2, label: "vs last week" }}
+                    />
+                    <MetricCard
+                        label="Avg. Latency"
+                        value="1.2s"
+                        icon={Clock}
+                        trend={{ value: -0.3, label: "vs last week" }}
+                    />
+                    <MetricCard
+                        label="API Keys"
+                        value="3"
+                        icon={Settings}
+                    />
+                </div>
 
-            {/* Quick actions */}
-            <div className="rounded-lg border border-border bg-card p-6">
-                <h2 className="font-heading text-base font-semibold text-foreground mb-4">Quick Actions</h2>
-                <div className="flex gap-3">
-                    <a
-                        href="/blueprints/new"
-                        className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 transition-colors"
-                    >
-                        New Blueprint
-                    </a>
-                    <a
-                        href="/blueprints"
-                        className="rounded-md border border-border px-4 py-2 text-sm text-foreground hover:bg-border transition-colors"
-                    >
-                        Browse Blueprints
-                    </a>
+                {/* Charts */}
+                <div className="grid gap-4 lg:grid-cols-2">
+                    <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+                        <h3 className="mb-4 text-sm font-semibold text-foreground">Execution Volume (7 Days)</h3>
+                        <div className="h-[300px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                    <defs>
+                                        <linearGradient id="colorExec" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                                    <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+                                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+                                    <Tooltip
+                                        contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px' }}
+                                        itemStyle={{ color: 'hsl(var(--foreground))' }}
+                                    />
+                                    <Area type="monotone" dataKey="executions" stroke="hsl(var(--primary))" fillOpacity={1} fill="url(#colorExec)" />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+                        <h3 className="mb-4 text-sm font-semibold text-foreground">Error Rates</h3>
+                        <div className="h-[300px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                                    <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+                                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+                                    <Tooltip
+                                        contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px' }}
+                                        itemStyle={{ color: 'hsl(var(--foreground))' }}
+                                    />
+                                    <Line type="monotone" dataKey="errors" stroke="hsl(var(--destructive))" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
+        </>
     )
 }

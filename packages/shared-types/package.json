@@ -1,6 +1,7 @@
 {
     "name": "@agent-builder/shared-types",
     "version": "0.1.0",
+    "type": "module",
     "private": true,
     "description": "Auto-generated TypeScript types from FastAPI OpenAPI spec",
     "main": "./src/index.ts",
