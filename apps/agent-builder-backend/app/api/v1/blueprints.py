@@ -38,6 +38,125 @@ from app.services.blueprint_service import BlueprintService
 router = APIRouter(prefix="/blueprints", tags=["Blueprints"])
 
 
+# ── E10: Standalone validate (body, not by blueprint ID) ──────────────────────
+
+from pydantic import BaseModel as _BaseModel
+
+class ValidateDefinitionRequest(_BaseModel):
+    definition: dict
+    iterative: bool = False
+    existing_nodes: list = []
+    existing_edges: list = []
+
+class GenerateRequest(_BaseModel):
+    prompt: str
+    existing_nodes: list = []
+    existing_edges: list = []
+    iterative: bool = False
+
+class DiffRequest(_BaseModel):
+    old_version: int
+    new_version: int
+
+class TestNodeRequest(_BaseModel):
+    node_type: str
+    node_data: dict
+    sample_state: dict = {}
+
+class ImprovePromptRequest(_BaseModel):
+    system_prompt: str = ""
+    user_prompt: str = ""
+    context: str = ""
+
+
+@router.post("/validate")
+async def validate_definition(body: ValidateDefinitionRequest, current_user: CurrentUser, db: DbSession):
+    """Validate a blueprint definition without requiring it to be saved."""
+    from workflow_engine.compiler import BlueprintCompiler
+    compiler = BlueprintCompiler()
+    return compiler.validate(body.definition)
+
+
+@router.post("/generate")
+async def generate_blueprint(body: GenerateRequest, current_user: CurrentUser, db: DbSession):
+    """
+    Convert a natural language description into a BlueprintDefinition.
+    If iterative=True and existing_nodes provided, returns new_nodes/new_edges to append.
+    """
+    from app.services.llm_provider_pool import LLMProviderPool
+    import json
+
+    pool = LLMProviderPool()
+
+    if body.iterative and body.existing_nodes:
+        system = (
+            "You are a workflow architect. The user has an existing workflow canvas and wants to modify it. "
+            "Return a JSON object with keys: 'new_nodes' (array) and 'new_edges' (array). "
+            "Each node: {id, type, position: {x, y}, data: {label, ...}}. "
+            "Each edge: {id, source, target, sourceHandle?, type}. "
+            "Valid types: trigger, llm, tool, condition, router, approval, memory_read, memory_write, code, sub_blueprint, output, parallel_fork, loop, llm_judge. "
+            f"Existing nodes: {json.dumps([n.get('data', {}).get('label') for n in body.existing_nodes])}"
+        )
+    else:
+        system = (
+            "You are a workflow architect. Convert the user's description into a minimal React Flow graph. "
+            "Return a JSON object with keys: 'nodes' (array) and 'edges' (array). "
+            "Each node: {id: string, type: string, position: {x: number, y: number}, data: {label: string}}. "
+            "Each edge: {id: string, source: string, target: string, type: 'default'}. "
+            "Valid types: trigger, llm, tool, condition, router, approval, memory_read, memory_write, code, "
+            "sub_blueprint, output, parallel_fork, loop, llm_judge. "
+            "Position nodes left-to-right horizontally (x += 250 per step, y = 200). "
+            "Always start with a trigger node. "
+            "Respond with ONLY valid JSON, no markdown."
+        )
+
+    result = pool.call(
+        model="gpt-4o",
+        system=system,
+        user=body.prompt,
+        max_tokens=4096,
+        temperature=0.2,
+    )
+
+    # Clean and parse JSON
+    result = result.strip()
+    if result.startswith("```"):
+        result = "\n".join(result.split("\n")[1:-1])
+    try:
+        return json.loads(result)
+    except json.JSONDecodeError:
+        return {"nodes": [], "edges": [], "error": "Failed to parse generation result"}
+
+
+@router.post("/test-node")
+async def test_single_node(body: TestNodeRequest, current_user: CurrentUser, db: DbSession):
+    """Run a single node executor with provided sample state."""
+    from workflow_engine.compiler import BlueprintCompiler, _simple_render_jinja
+    compiler = BlueprintCompiler()
+    fn = compiler._build_executor("test", body.node_type, body.node_data, {})
+    try:
+        state = {"context": body.sample_state, "memory": {}, "output": {}, "messages": [], "is_approved": False, "_current_node_id": "test"}
+        result = fn(state)
+        return {"success": True, "output": result.get("context", {})}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@router.post("/improve-prompt")
+async def improve_prompt(body: ImprovePromptRequest, current_user: CurrentUser, db: DbSession):
+    """Call Claude to improve a system or user prompt."""
+    from app.services.llm_provider_pool import LLMProviderPool
+    pool = LLMProviderPool()
+    system = (
+        "You are an expert prompt engineer. Given a system or user prompt, improve it to be clearer, "
+        "more specific, and more effective. Maintain the original intent. Return ONLY the improved prompt text, no explanation."
+    )
+    user = f"SYSTEM PROMPT:\n{body.system_prompt}\n\nUSER PROMPT TEMPLATE:\n{body.user_prompt}"
+    improved = pool.call(model="claude-3-7-sonnet-20250219", system=system, user=user, max_tokens=2048, temperature=0.3)
+    return {"improved_system_prompt": improved}
+
+
+
 @router.get("/", response_model=list[BlueprintListItem])
 async def list_blueprints(
     current_user: CurrentUser,

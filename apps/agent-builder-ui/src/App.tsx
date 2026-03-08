@@ -2,20 +2,24 @@ import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 
-// Lazy-loaded route modules
 const LoginPage = lazy(() => import('@/pages/auth/LoginPage'))
 const RegisterPage = lazy(() => import('@/pages/auth/RegisterPage'))
 const PlatformLayout = lazy(() => import('@/layouts/PlatformLayout'))
 const DashboardPage = lazy(() => import('@/pages/dashboard/DashboardPage'))
 const BlueprintsPage = lazy(() => import('@/pages/blueprints/BlueprintsPage'))
 const BuilderPage = lazy(() => import('@/pages/blueprints/BuilderPage'))
+const VersionsPage = lazy(() => import('@/pages/blueprints/VersionsPage').then(m => ({ default: m.VersionsPage })))
+const BlueprintTestsPage = lazy(() => import('@/pages/blueprints/BlueprintTestsPage').then(m => ({ default: m.BlueprintTestsPage })))
 const ExecutionsPage = lazy(() => import('@/pages/executions/ExecutionsPage'))
 const ApprovalsPage = lazy(() => import('@/pages/approvals/ApprovalsPage'))
-const AnalyticsPage = lazy(() => import('@/pages/analytics/AnalyticsPage'))
+const AnalyticsPage = lazy(() => import('@/pages/analytics/AnalyticsPage').then(m => ({ default: m.AnalyticsPage })))
 const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage'))
 const TemplatesPage = lazy(() => import('@/pages/templates/TemplatesPage'))
 const SkillsPage = lazy(() => import('@/pages/skills/SkillsPage'))
-const ToolsPage = lazy(() => import('@/pages/tools/ToolsPage'))
+const ToolsPage = lazy(() => import('@/pages/tools/ToolsPage').then(m => ({ default: m.ToolsPage })))
+const BasePromptsPage = lazy(() => import('@/pages/admin/BasePromptsPage').then(m => ({ default: m.BasePromptsPage })))
+const DependencyGraphPage = lazy(() => import('@/pages/admin/DependencyGraphPage').then(m => ({ default: m.DependencyGraphPage })))
+const AuditLogPage = lazy(() => import('@/pages/audit/AuditLogPage').then(m => ({ default: m.AuditLogPage })))
 
 /** Guard: redirects to login if not authenticated */
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -52,6 +56,8 @@ export default function App() {
                     <Route path="dashboard" element={<DashboardPage />} />
                     <Route path="blueprints" element={<BlueprintsPage />} />
                     <Route path="blueprints/:id" element={<BuilderPage />} />
+                    <Route path="blueprints/:id/versions" element={<VersionsPage />} />
+                    <Route path="blueprints/:id/tests" element={<BlueprintTestsPage />} />
                     <Route path="executions" element={<ExecutionsPage />} />
                     <Route path="approvals" element={<ApprovalsPage />} />
                     <Route path="analytics" element={<AnalyticsPage />} />
@@ -59,6 +65,9 @@ export default function App() {
                     <Route path="skills" element={<SkillsPage />} />
                     <Route path="tools" element={<ToolsPage />} />
                     <Route path="settings" element={<SettingsPage />} />
+                    <Route path="admin/base-prompts" element={<BasePromptsPage />} />
+                    <Route path="admin/dependency-graph" element={<DependencyGraphPage />} />
+                    <Route path="admin/audit-log" element={<AuditLogPage />} />
                 </Route>
 
                 {/* Fallback */}

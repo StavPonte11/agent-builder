@@ -1,0 +1,456 @@
+{
+    "_comment": "demo_blueprint.json — Infrastructure Analysis Workflow, Platform Edition",
+    "_description": "This is the orchestrator.py LangGraph agent re-built as a native platform blueprint. It classifies incident reports, resolves infrastructure entities, runs impact analysis, dispatches notifications, and generates an operational brief — all using the platform's built-in nodes instead of custom Python.",
+    "name": "Infrastructure Analysis Workflow",
+    "description": "Classifies reports → resolves entities → runs impact analysis → dispatches alerts → generates operational brief. Demonstrating how the orchestrator.py LangGraph agent is reproduced inside the platform.",
+    "schema_version": "2.0",
+    "blueprint_type": "workflow",
+    "domain": "infrastructure",
+    "tags": [
+        "demo",
+        "orchestrator",
+        "infrastructure",
+        "nlp"
+    ],
+    "definition": {
+        "nodes": [
+            {
+                "id": "trigger",
+                "type": "trigger",
+                "label": "Incident Report Trigger",
+                "position": {
+                    "x": 100,
+                    "y": 300
+                },
+                "data": {
+                    "trigger_type": "manual",
+                    "description": "Fires manually or via webhook with an incident report text and optional pre-identified site names.",
+                    "input_schema": {
+                        "report_text": {
+                            "type": "string",
+                            "description": "Raw report / alert text to analyze"
+                        },
+                        "site_names": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            },
+                            "description": "Pre-identified site names (skips LLM classification)"
+                        },
+                        "trigger_type": {
+                            "type": "string",
+                            "enum": [
+                                "report",
+                                "alert",
+                                "manual",
+                                "schedule"
+                            ],
+                            "default": "report"
+                        }
+                    },
+                    "output_mapping": {
+                        "report_text": "{{ trigger.report_text }}",
+                        "site_names": "{{ trigger.site_names | default([]) }}",
+                        "trigger_type": "{{ trigger.trigger_type | default('report') }}"
+                    }
+                }
+            },
+            {
+                "id": "classify_report",
+                "type": "llm",
+                "label": "Classify Report",
+                "position": {
+                    "x": 380,
+                    "y": 300
+                },
+                "data": {
+                    "provider": "openai",
+                    "model": "gpt-4o",
+                    "temperature": 0,
+                    "max_tokens": 512,
+                    "system_prompt": "You are an infrastructure intelligence analyst.\nGiven a report or alert text, classify it and extract entities.\n\nRespond ONLY with valid JSON matching this schema:\n{\n  \"is_relevant\": bool,\n  \"category\": \"infrastructure\" | \"security\" | \"maintenance\" | \"operational\" | \"unrelated\",\n  \"confidence\": float,\n  \"extracted_sites\": [str],\n  \"extracted_facilities\": [str],\n  \"extracted_coordinates\": [{\"lat\": float, \"lon\": float}],\n  \"event_type\": str | null,\n  \"reasoning\": str\n}\n\nis_relevant=true only if the report describes a physical infrastructure event (outage, damage, attack on a site/facility, power loss, etc.).",
+                    "user_prompt_template": "{% if state.report_text %}Report:\n{{ state.report_text }}{% else %}Manual trigger for sites: {{ state.site_names | join(', ') }}{% endif %}",
+                    "output_format": "json",
+                    "output_mapping": {
+                        "is_relevant": "{{ llm_output.is_relevant }}",
+                        "report_category": "{{ llm_output.category }}",
+                        "confidence_score": "{{ llm_output.confidence }}",
+                        "extracted_sites": "{{ llm_output.extracted_sites | default([]) }}",
+                        "extracted_facilities": "{{ llm_output.extracted_facilities | default([]) }}",
+                        "extracted_coordinates": "{{ llm_output.extracted_coordinates | default([]) }}",
+                        "classification_reasoning": "{{ llm_output.reasoning }}"
+                    },
+                    "skip_if": "{{ not state.report_text and state.site_names | length > 0 }}",
+                    "skip_output": {
+                        "is_relevant": true,
+                        "report_category": "infrastructure",
+                        "confidence_score": 1.0,
+                        "extracted_sites": "{{ state.site_names }}"
+                    },
+                    "retry_policy": {
+                        "max_attempts": 2,
+                        "backoff": "linear"
+                    },
+                    "timeout": 30
+                }
+            },
+            {
+                "id": "relevance_gate",
+                "type": "condition",
+                "label": "Is Infrastructure-Relevant?",
+                "position": {
+                    "x": 680,
+                    "y": 300
+                },
+                "data": {
+                    "conditions": [
+                        {
+                            "id": "relevant",
+                            "label": "Relevant (confidence ≥ 0.4)",
+                            "expression": "{{ state.is_relevant == true and state.confidence_score >= 0.4 }}"
+                        },
+                        {
+                            "id": "irrelevant",
+                            "label": "Not relevant",
+                            "expression": "{{ true }}"
+                        }
+                    ]
+                }
+            },
+            {
+                "id": "route_elsewhere",
+                "type": "output",
+                "label": "Route Elsewhere",
+                "position": {
+                    "x": 680,
+                    "y": 500
+                },
+                "data": {
+                    "description": "Report is not infrastructure-related. Log and exit.",
+                    "output_mapping": {
+                        "final_summary": "Report classified as '{{ state.report_category }}' — not infrastructure-relevant. No action taken.",
+                        "workflow_status": "completed_no_action"
+                    }
+                }
+            },
+            {
+                "id": "resolve_and_analyze",
+                "type": "http_request",
+                "label": "Resolve Entities & Run Impact Analysis",
+                "position": {
+                    "x": 980,
+                    "y": 300
+                },
+                "data": {
+                    "description": "Calls the Infra API /agent/analyze endpoint with all known entities.",
+                    "method": "POST",
+                    "url": "{{ env.INFRA_API_BASE_URL }}/agent/analyze",
+                    "headers": {
+                        "Content-Type": "application/json"
+                    },
+                    "body": {
+                        "trigger_type": "{{ state.trigger_type }}",
+                        "report_text": "{{ state.report_text | default('') }}",
+                        "site_names": "{{ (state.site_names + state.extracted_sites) | unique | list }}"
+                    },
+                    "timeout": 60,
+                    "retry_policy": {
+                        "max_attempts": 3,
+                        "backoff": "exponential"
+                    },
+                    "output_mapping": {
+                        "analysis_result": "{{ http_response }}",
+                        "resolved_sites": "{{ http_response.resolved_sites | default([]) }}",
+                        "escalation_level": "{{ http_response.escalation_level | default(0) }}",
+                        "has_viable_backup": "{{ http_response.has_viable_backup | default(true) }}",
+                        "action_queue": "{{ http_response.action_queue | default([]) }}",
+                        "risk_summary": "{{ http_response.risk_summary | default('') }}"
+                    }
+                }
+            },
+            {
+                "id": "has_actions_gate",
+                "type": "condition",
+                "label": "Are there actions to dispatch?",
+                "position": {
+                    "x": 1280,
+                    "y": 300
+                },
+                "data": {
+                    "conditions": [
+                        {
+                            "id": "has_actions",
+                            "label": "Action queue non-empty",
+                            "expression": "{{ state.action_queue | length > 0 }}"
+                        },
+                        {
+                            "id": "no_actions",
+                            "label": "No actions needed",
+                            "expression": "{{ true }}"
+                        }
+                    ]
+                }
+            },
+            {
+                "id": "approval_gate",
+                "type": "human_approval",
+                "label": "Human Approval Gate",
+                "position": {
+                    "x": 1580,
+                    "y": 200
+                },
+                "data": {
+                    "description": "Requires explicit operator approval for high-escalation actions before dispatching.",
+                    "title": "Approve Action Queue",
+                    "prompt": "Escalation level {{ state.escalation_level }}. Resolved sites: {{ state.resolved_sites | join(', ') }}.\n\nRisk summary:\n{{ state.risk_summary }}\n\nActions queued:\n{% for action in state.action_queue %}- {{ action.action_type }}: {{ action.description }}\n{% endfor %}\n\nApprove to execute all queued actions?",
+                    "required_role": "operator",
+                    "skip_if": "{{ state.escalation_level < 2 }}"
+                }
+            },
+            {
+                "id": "dispatch_notifications",
+                "type": "parallel",
+                "label": "Dispatch Notifications",
+                "position": {
+                    "x": 1880,
+                    "y": 300
+                },
+                "data": {
+                    "description": "Fan-out to Slack, PagerDuty, and email simultaneously for the action queue."
+                }
+            },
+            {
+                "id": "slack_notify",
+                "type": "tool_call",
+                "label": "Slack Alert",
+                "position": {
+                    "x": 1780,
+                    "y": 450
+                },
+                "data": {
+                    "tool_id": "slack",
+                    "capability": "post_message",
+                    "parent_parallel": "dispatch_notifications",
+                    "skip_if": "{{ not state.action_queue | selectattr('tool_hint', 'equalto', 'slack') | list }}",
+                    "input_mapping": {
+                        "channel": "{{ state.action_queue | selectattr('tool_hint', 'equalto', 'slack') | first | attr('payload') | default({}) | attr('channel') | default('#ops-alerts') }}",
+                        "message": "🚨 *Escalation L{{ state.escalation_level }}* — {{ state.resolved_sites | join(', ') }}\n{{ state.risk_summary[:400] }}"
+                    },
+                    "output_mapping": {
+                        "slack_sent": true
+                    }
+                }
+            },
+            {
+                "id": "pagerduty_notify",
+                "type": "tool_call",
+                "label": "PagerDuty Alert",
+                "position": {
+                    "x": 1880,
+                    "y": 450
+                },
+                "data": {
+                    "tool_id": "pagerduty",
+                    "capability": "trigger_incident",
+                    "parent_parallel": "dispatch_notifications",
+                    "skip_if": "{{ state.escalation_level < 1 }}",
+                    "input_mapping": {
+                        "severity": "{{ 'critical' if state.escalation_level >= 2 else 'warning' }}",
+                        "summary": "Infrastructure event: {{ state.resolved_sites | join(', ') }}",
+                        "details": "{{ state.risk_summary }}"
+                    },
+                    "output_mapping": {
+                        "pagerduty_sent": true
+                    }
+                }
+            },
+            {
+                "id": "email_notify",
+                "type": "tool_call",
+                "label": "Email Notification",
+                "position": {
+                    "x": 1980,
+                    "y": 450
+                },
+                "data": {
+                    "tool_id": "email",
+                    "capability": "send_email",
+                    "parent_parallel": "dispatch_notifications",
+                    "skip_if": "{{ state.escalation_level < 1 }}",
+                    "input_mapping": {
+                        "to": "{{ env.OPS_EMAIL | default('ops@example.com') }}",
+                        "subject": "[L{{ state.escalation_level }}] Infrastructure Event — {{ state.resolved_sites | first | default('unknown') }}",
+                        "body": "{{ state.risk_summary }}"
+                    },
+                    "output_mapping": {
+                        "email_sent": true
+                    }
+                }
+            },
+            {
+                "id": "generate_summary",
+                "type": "llm",
+                "label": "Generate Operational Brief",
+                "position": {
+                    "x": 2180,
+                    "y": 300
+                },
+                "data": {
+                    "provider": "openai",
+                    "model": "gpt-4o",
+                    "temperature": 0,
+                    "max_tokens": 400,
+                    "system_prompt": "You are an operations briefing officer.\nGiven an infrastructure impact analysis result, write a concise 3-5 sentence operational brief suitable for a senior commander. Include: what happened, what efforts are degraded, backup status, and immediate actions required.\nBe direct, factual, and use military/operational brevity style.",
+                    "user_prompt_template": "Risk analysis:\n{{ state.risk_summary }}\n\nActions dispatched: Slack={{ state.slack_sent | default(false) }}, PagerDuty={{ state.pagerduty_sent | default(false) }}, Email={{ state.email_sent | default(false) }}\nResolved sites: {{ state.resolved_sites | join(', ') }}\nEscalation level: {{ state.escalation_level }}\nBackup viable: {{ state.has_viable_backup }}",
+                    "output_format": "text",
+                    "output_mapping": {
+                        "final_summary": "{{ llm_output }}",
+                        "workflow_status": "completed"
+                    },
+                    "retry_policy": {
+                        "max_attempts": 2,
+                        "backoff": "linear"
+                    },
+                    "timeout": 30
+                }
+            },
+            {
+                "id": "output",
+                "type": "output",
+                "label": "Final Output",
+                "position": {
+                    "x": 2480,
+                    "y": 300
+                },
+                "data": {
+                    "output_mapping": {
+                        "summary": "{{ state.final_summary }}",
+                        "resolved_sites": "{{ state.resolved_sites }}",
+                        "escalation": "{{ state.escalation_level }}",
+                        "actions_taken": "{{ state.action_queue | length }}",
+                        "status": "{{ state.workflow_status | default('completed') }}"
+                    }
+                }
+            }
+        ],
+        "edges": [
+            {
+                "id": "e1",
+                "source": "trigger",
+                "target": "classify_report"
+            },
+            {
+                "id": "e2",
+                "source": "classify_report",
+                "target": "relevance_gate"
+            },
+            {
+                "id": "e3",
+                "source": "relevance_gate",
+                "target": "resolve_and_analyze",
+                "condition": "relevant"
+            },
+            {
+                "id": "e4",
+                "source": "relevance_gate",
+                "target": "route_elsewhere",
+                "condition": "irrelevant"
+            },
+            {
+                "id": "e5",
+                "source": "resolve_and_analyze",
+                "target": "has_actions_gate"
+            },
+            {
+                "id": "e6",
+                "source": "has_actions_gate",
+                "target": "approval_gate",
+                "condition": "has_actions"
+            },
+            {
+                "id": "e7",
+                "source": "has_actions_gate",
+                "target": "generate_summary",
+                "condition": "no_actions"
+            },
+            {
+                "id": "e8",
+                "source": "approval_gate",
+                "target": "dispatch_notifications"
+            },
+            {
+                "id": "e9",
+                "source": "dispatch_notifications",
+                "target": "slack_notify"
+            },
+            {
+                "id": "e10",
+                "source": "dispatch_notifications",
+                "target": "pagerduty_notify"
+            },
+            {
+                "id": "e11",
+                "source": "dispatch_notifications",
+                "target": "email_notify"
+            },
+            {
+                "id": "e12",
+                "source": "slack_notify",
+                "target": "generate_summary"
+            },
+            {
+                "id": "e13",
+                "source": "pagerduty_notify",
+                "target": "generate_summary"
+            },
+            {
+                "id": "e14",
+                "source": "email_notify",
+                "target": "generate_summary"
+            },
+            {
+                "id": "e15",
+                "source": "generate_summary",
+                "target": "output"
+            }
+        ]
+    },
+    "evaluation_config": {
+        "enabled": true,
+        "judge_model": "gpt-4o",
+        "dimensions": [
+            {
+                "name": "classification_accuracy",
+                "weight": 0.2,
+                "description": "Is_relevant flag correctly set and category matches the report content",
+                "rubric": "Score 1.0 if the classification matches expected; 0.0 if it misclassified a real infrastructure event as irrelevant or vice versa."
+            },
+            {
+                "name": "entity_resolution_quality",
+                "weight": 0.25,
+                "description": "Resolved sites match the expected sites in the test scenario",
+                "rubric": "Score based on recall of expected sites."
+            },
+            {
+                "name": "notification_correctness",
+                "weight": 0.2,
+                "description": "Correct tools triggered for the escalation level (L0=none, L1=email, L2=all)",
+                "rubric": "Score 1.0 if dispatched tools match expected for escalation level."
+            },
+            {
+                "name": "summary_quality",
+                "weight": 0.2,
+                "description": "Operational brief is concise, factual, and covers all required sections",
+                "rubric": "Score 1.0 for a 3-5 sentence brief covering: what happened, degraded capability, backup status, immediate action."
+            },
+            {
+                "name": "latency_sla",
+                "weight": 0.15,
+                "description": "Total execution completes within 60 seconds",
+                "rubric": "Score 1.0 if total_duration_ms < 60000, 0.5 if < 120000, 0.0 if >= 120000."
+            }
+        ],
+        "auto_pause_threshold": 3,
+        "consecutive_failure_limit": 5
+    }
+}

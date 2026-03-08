@@ -1,15 +1,18 @@
 import { useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { CheckCircle2, CircleDashed, XCircle, PlayCircle, Loader2 } from 'lucide-react'
-import { useExecutionStream, ExecutionEvent } from '@/hooks/useExecutionStream'
+import { CheckCircle2, CircleDashed, XCircle, PlayCircle, Loader2, Zap } from 'lucide-react'
+import { useExecutionStream } from '@/hooks/useExecutionStream'
+import type { ExecutionStreamEvent } from '@/hooks/useExecutionStream'
 
-function EventIcon({ type }: { type: ExecutionEvent['type'] }) {
+function EventIcon({ type }: { type: ExecutionStreamEvent['type'] }) {
     switch (type) {
-        case 'execution_start': return <PlayCircle className="h-4 w-4 text-blue-500" />
-        case 'node_start': return <Loader2 className="h-4 w-4 text-amber-500 animate-spin" />
-        case 'node_finish': return <CheckCircle2 className="h-4 w-4 text-green-500" />
-        case 'node_error': return <XCircle className="h-4 w-4 text-destructive" />
-        case 'execution_finish': return <CheckCircle2 className="h-4 w-4 text-primary" />
+        case 'execution_started': return <PlayCircle className="h-4 w-4 text-blue-500" />
+        case 'node_started': return <Loader2 className="h-4 w-4 text-amber-500 animate-spin" />
+        case 'node_completed': return <CheckCircle2 className="h-4 w-4 text-green-500" />
+        case 'node_failed': return <XCircle className="h-4 w-4 text-destructive" />
+        case 'node_streaming': return <Zap className="h-4 w-4 text-purple-500 animate-pulse" />
+        case 'execution_completed': return <CheckCircle2 className="h-4 w-4 text-primary" />
+        case 'execution_failed': return <XCircle className="h-4 w-4 text-destructive" />
         default: return <CircleDashed className="h-4 w-4 text-muted-foreground" />
     }
 }
@@ -70,9 +73,9 @@ export function ExecutionMonitor({ executionId }: { executionId: string | null }
                                     </span>
                                 </div>
 
-                                {ev.data && (
+                                {ev.data != null && (
                                     <div className="rounded bg-muted/50 p-2 text-xs font-mono text-muted-foreground overflow-x-auto whitespace-pre-wrap">
-                                        {JSON.stringify(ev.data, null, 2)}
+                                        {typeof ev.data === 'string' ? ev.data : JSON.stringify(ev.data as object, null, 2)}
                                     </div>
                                 )}
 
