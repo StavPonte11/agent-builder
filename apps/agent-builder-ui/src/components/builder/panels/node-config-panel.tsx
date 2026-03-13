@@ -169,15 +169,17 @@ function MappingTable({
     paramPlaceholder?: string
     exprPlaceholder?: string
 }) {
-    const add = () => onChange([...entries, { id: uid(), param: '', expression: '' }])
-    const remove = (id: string) => onChange(entries.filter((e) => e.id !== id))
+    const safeEntries = Array.isArray(entries) ? entries : []
+
+    const add = () => onChange([...safeEntries, { id: uid(), param: '', expression: '' }])
+    const remove = (id: string) => onChange(safeEntries.filter((e) => e.id !== id))
     const update = (id: string, field: 'param' | 'expression', val: string) =>
-        onChange(entries.map((e) => (e.id === id ? { ...e, [field]: val } : e)))
+        onChange(safeEntries.map((e) => (e.id === id ? { ...e, [field]: val } : e)))
 
     return (
         <Field label={label}>
             <div className="space-y-1">
-                {entries.map((entry) => (
+                {safeEntries.map((entry) => (
                     <div key={entry.id} className="flex items-center gap-1.5">
                         <input
                             value={entry.param}
@@ -869,6 +871,43 @@ function CodeFields({ node, updateNodeData }: { node: any; updateNodeData: (id: 
     )
 }
 
+// ─── Supervisor Node Fields ───────────────────────────────────────────────────
+
+function SupervisorFields({ node, updateNodeData }: { node: any; updateNodeData: (id: string, d: Record<string, unknown>) => void }) {
+    const d = node.data
+    const up = (data: Record<string, unknown>) => updateNodeData(node.id, data)
+
+    return (
+        <div className="space-y-4">
+            <Field label="System Routing Prompt" hint="Instructions for the Supervisor LLM to route tasks.">
+                <PromptEditor
+                    language="markdown"
+                    value={d.system_prompt ?? 'You are a supervisor agent. Route tasks to the appropriate worker. Return {"next": "worker_name"} or {"next": "FINISH"}.'}
+                    onChange={(v) => up({ system_prompt: v })}
+                />
+            </Field>
+
+            <Field label="Worker Nodes / Tools" hint="Comma-separated list of Sub-Blueprints or Agent nodes this supervisor can delegate to.">
+                <TextInput
+                    value={d.worker_nodes ?? ''}
+                    onChange={(v) => up({ worker_nodes: v })}
+                    placeholder="e.g. ResearchAgent, WriterAgent"
+                />
+            </Field>
+
+            <div className="rounded-md border border-border bg-muted/30 p-3 mt-4">
+                <p className="text-[10px] font-semibold text-muted-foreground mb-1 flex items-center gap-1">
+                    <Sparkles className="h-3 w-3 text-primary" /> Swarm Mechanics
+                </p>
+                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                    The supervisor invokes its LLM and outputs a <code>{`{ "next": "<worker>" }`}</code> JSON schema.
+                    Execution loops dynamically until the supervisor outputs <code>FINISH</code>.
+                </p>
+            </div>
+        </div>
+    )
+}
+
 // ─── Section Divider ──────────────────────────────────────────────────────────
 
 function SectionDivider({ label }: { label: string }) {
@@ -898,9 +937,57 @@ export function NodeConfigPanel() {
     // Don't show config panel in execute mode
     if (canvasMode === 'execute') return null
 
+    // ─── Trigger Node Fields ────────────────────────────────────────────────────────
+    function TriggerFields({ node, updateNodeData }: { node: any; updateNodeData: (id: string, d: Record<string, unknown>) => void }) {
+        const d = node.data
+        const up = (data: Record<string, unknown>) => updateNodeData(node.id, data)
+
+        return (
+            <div className="space-y-4">
+                <Field label="Trigger Type">
+                    <Select value={d.trigger_type ?? 'manual'} onChange={(v) => up({ trigger_type: v })}>
+                        <option value="manual">Manual / API</option>
+                        <option value="webhook">Webhook</option>
+                        <option value="schedule">Schedule (Cron)</option>
+                    </Select>
+                </Field>
+
+                {d.trigger_type === 'webhook' && (
+                    <>
+                        <Field label="Webhook Secret" hint="Optional. If set, callers must provide this in the X-Webhook-Secret header.">
+                            <TextInput
+                                value={d.webhook_secret ?? ''}
+                                onChange={(v) => up({ webhook_secret: v })}
+                                placeholder="Leave blank for public webhook"
+                            />
+                        </Field>
+                        <div className="rounded-md border border-border bg-muted/30 p-2">
+                            <p className="text-[10px] font-semibold text-muted-foreground mb-1">Webhook URL</p>
+                            <p className="text-[10px] font-mono text-foreground break-all">
+                                POST /api/v1/webhooks/&lt;trigger_id_generated_on_publish&gt;
+                            </p>
+                        </div>
+                    </>
+                )}
+
+                {d.trigger_type === 'schedule' && (
+                    <Field label="Cron Expression" hint="Standard cron format: * * * * * (min hour dom mon dow)">
+                        <TextInput
+                            value={d.cron_expression ?? '0 0 * * *'}
+                            onChange={(v) => up({ cron_expression: v })}
+                            placeholder="0 0 * * *"
+                            mono
+                        />
+                    </Field>
+                )}
+            </div>
+        )
+    }
+
     const renderTypeFields = (node: any) => {
         const props = { node, updateNodeData }
         switch (node.type) {
+            case 'trigger': return <TriggerFields {...props} />
             case 'llm': return <LLMFields {...props} />
             case 'tool': return <ToolFields {...props} />
             case 'condition': return <ConditionFields {...props} />
@@ -913,6 +1000,7 @@ export function NodeConfigPanel() {
             case 'memory_read': return <MemoryReadFields {...props} />
             case 'memory_write': return <MemoryWriteFields {...props} />
             case 'code': return <CodeFields {...props} />
+            case 'supervisor': return <SupervisorFields {...props} />
             default: return null
         }
     }

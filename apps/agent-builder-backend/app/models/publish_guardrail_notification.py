@@ -1,15 +1,16 @@
 """
 PublishRequest, GuardrailLog, and Notification models.
 """
-from __future__ import annotations
+
 
 import enum
 import uuid
 from datetime import datetime
+from typing import Optional
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Boolean
+from sqlalchemy import DateTime, Enum, Integer, String, Boolean
 from sqlalchemy.dialects.postgresql import JSONB, UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlmodel import Field
 
 from app.models.base import TimestampedBase
 
@@ -24,35 +25,47 @@ class PublishRequestStatus(str, enum.Enum):
     WITHDRAWN = "withdrawn"
 
 
-class PublishRequest(TimestampedBase):
+class PublishRequest(TimestampedBase, table=True):
     __tablename__ = "publish_requests"
 
-    blueprint_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("blueprints.id"), nullable=False, index=True
+    blueprint_id: uuid.UUID = Field(
+        foreign_key="blueprints.id",
+        nullable=False,
+        index=True,
+        sa_type=UUID(as_uuid=True)
     )
-    requested_by: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
+    requested_by: uuid.UUID = Field(
+        foreign_key="users.id",
+        nullable=False,
+        sa_type=UUID(as_uuid=True)
     )
-    reviewed_by: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+    reviewed_by: Optional[uuid.UUID] = Field(
+        default=None,
+        foreign_key="users.id",
+        nullable=True,
+        sa_type=UUID(as_uuid=True)
     )
-    status: Mapped[PublishRequestStatus] = mapped_column(
-        Enum(PublishRequestStatus, name="publish_request_status"),
+    status: PublishRequestStatus = Field(
+        sa_type=Enum(PublishRequestStatus, name="publish_request_status"),
         nullable=False,
         default=PublishRequestStatus.PENDING,
         index=True,
     )
-    version: Mapped[int] = mapped_column(Integer, nullable=False)
-    release_notes: Mapped[str] = mapped_column(String(5000), nullable=False, default="")
-    reviewer_notes: Mapped[str] = mapped_column(String(5000), nullable=False, default="")
-    requested_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
+    version: int = Field(sa_type=Integer, nullable=False)
+    release_notes: str = Field(sa_type=String(5000), nullable=False, default="")
+    reviewer_notes: str = Field(sa_type=String(5000), nullable=False, default="")
+    requested_at: Optional[datetime] = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),
+        nullable=True
     )
-    reviewed_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
+    reviewed_at: Optional[datetime] = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),
+        nullable=True
     )
-    sanity_check_results: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
-    test_run_results: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    sanity_check_results: dict = Field(sa_type=JSONB, nullable=False, default_factory=dict)
+    test_run_results: dict = Field(sa_type=JSONB, nullable=False, default_factory=dict)
 
 
 # ---------------------------------------------------------------------------
@@ -75,43 +88,64 @@ class GuardrailAction(str, enum.Enum):
     WARN = "warn"
 
 
-class GuardrailLog(TimestampedBase):
+class GuardrailLog(TimestampedBase, table=True):
     __tablename__ = "guardrail_logs"
 
-    execution_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("executions.id"), nullable=False, index=True
+    execution_id: uuid.UUID = Field(
+        foreign_key="executions.id",
+        nullable=False,
+        index=True,
+        sa_type=UUID(as_uuid=True)
     )
-    node_id: Mapped[str] = mapped_column(String(255), nullable=False)
-    check_type: Mapped[GuardrailCheckType] = mapped_column(
-        Enum(GuardrailCheckType, name="guardrail_check_type"), nullable=False
+    node_id: str = Field(sa_type=String(255), nullable=False)
+    check_type: GuardrailCheckType = Field(
+        sa_type=Enum(GuardrailCheckType, name="guardrail_check_type"),
+        nullable=False
     )
-    triggered: Mapped[bool] = mapped_column(Boolean, nullable=False)
-    action_taken: Mapped[GuardrailAction] = mapped_column(
-        Enum(GuardrailAction, name="guardrail_action"), nullable=False
+    triggered: bool = Field(sa_type=Boolean, nullable=False)
+    action_taken: GuardrailAction = Field(
+        sa_type=Enum(GuardrailAction, name="guardrail_action"),
+        nullable=False
     )
-    details: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
-    checked_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
+    details: dict = Field(sa_type=JSONB, nullable=False, default_factory=dict)
+    checked_at: Optional[datetime] = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),
+        nullable=True
     )
 
 
 # ---------------------------------------------------------------------------
 # Notification
 # ---------------------------------------------------------------------------
-class Notification(TimestampedBase):
+class Notification(TimestampedBase, table=True):
     __tablename__ = "notifications"
 
-    user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
+    user_id: uuid.UUID = Field(
+        foreign_key="users.id",
+        nullable=False,
+        index=True,
+        sa_type=UUID(as_uuid=True)
     )
-    org_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False, index=True
+    org_id: uuid.UUID = Field(
+        foreign_key="organizations.id",
+        nullable=False,
+        index=True,
+        sa_type=UUID(as_uuid=True)
     )
-    type: Mapped[str] = mapped_column(String(100), nullable=False)
-    title: Mapped[str] = mapped_column(String(500), nullable=False)
-    body: Mapped[str] = mapped_column(String(5000), nullable=False, default="")
-    meta_data: Mapped[dict] = mapped_column(
-        JSONB, nullable=False, default=dict, name="notification_metadata"
+    type: str = Field(sa_type=String(100), nullable=False)
+    title: str = Field(sa_type=String(500), nullable=False)
+    body: str = Field(sa_type=String(5000), nullable=False, default="")
+    meta_data: dict = Field(
+        sa_type=JSONB,
+        nullable=False,
+        default_factory=dict,
+        sa_column_kwargs={"name": "notification_metadata"}
     )
-    is_read: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, index=True)
-    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    is_read: bool = Field(sa_type=Boolean, nullable=False, default=False, index=True)
+    read_at: Optional[datetime] = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),
+        nullable=True
+    )
+

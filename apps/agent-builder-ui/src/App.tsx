@@ -20,6 +20,10 @@ const ToolsPage = lazy(() => import('@/pages/tools/ToolsPage').then(m => ({ defa
 const BasePromptsPage = lazy(() => import('@/pages/admin/BasePromptsPage').then(m => ({ default: m.BasePromptsPage })))
 const DependencyGraphPage = lazy(() => import('@/pages/admin/DependencyGraphPage').then(m => ({ default: m.DependencyGraphPage })))
 const AuditLogPage = lazy(() => import('@/pages/audit/AuditLogPage').then(m => ({ default: m.AuditLogPage })))
+const SandboxPage = lazy(() => import('@/pages/sandbox/SandboxPage').then(m => ({ default: m.SandboxPage })))
+const MonitoringPage = lazy(() => import('@/pages/monitoring/MonitoringPage').then(m => ({ default: m.MonitoringPage })))
+const PulsePage = lazy(() => import('@/pages/monitoring/PulsePage'))
+const EvaluationPage = lazy(() => import('@/pages/evaluation/EvaluationPage').then(m => ({ default: m.EvaluationPage })))
 
 /** Guard: redirects to login if not authenticated */
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -68,6 +72,10 @@ export default function App() {
                     <Route path="admin/base-prompts" element={<BasePromptsPage />} />
                     <Route path="admin/dependency-graph" element={<DependencyGraphPage />} />
                     <Route path="admin/audit-log" element={<AuditLogPage />} />
+                    <Route path="blueprints/:id/sandbox" element={<SandboxPage />} />
+                    <Route path="blueprints/:id/evaluation" element={<EvaluationPage />} />
+                    <Route path="monitoring" element={<MonitoringPage />} />
+                    <Route path="pulse" element={<PulsePage />} />
                 </Route>
 
                 {/* Fallback */}

@@ -220,70 +220,57 @@
                 }
             },
             {
-                "id": "slack_notify",
-                "type": "tool_call",
-                "label": "Slack Alert",
+                "id": "weather_lookup",
+                "type": "tool",
+                "label": "Get Weather Data",
                 "position": {
                     "x": 1780,
                     "y": 450
                 },
                 "data": {
-                    "tool_id": "slack",
-                    "capability": "post_message",
+                    "tool_id": "weather_lookup",
                     "parent_parallel": "dispatch_notifications",
-                    "skip_if": "{{ not state.action_queue | selectattr('tool_hint', 'equalto', 'slack') | list }}",
                     "input_mapping": {
-                        "channel": "{{ state.action_queue | selectattr('tool_hint', 'equalto', 'slack') | first | attr('payload') | default({}) | attr('channel') | default('#ops-alerts') }}",
-                        "message": "🚨 *Escalation L{{ state.escalation_level }}* — {{ state.resolved_sites | join(', ') }}\n{{ state.risk_summary[:400] }}"
+                        "city": "{{ state.resolved_sites | first | default('London') }}"
                     },
                     "output_mapping": {
-                        "slack_sent": true
+                        "weather_data": "{{ http_response }}"
                     }
                 }
             },
             {
-                "id": "pagerduty_notify",
-                "type": "tool_call",
-                "label": "PagerDuty Alert",
+                "id": "ip_geolocation",
+                "type": "tool",
+                "label": "Locate Server IP",
                 "position": {
                     "x": 1880,
                     "y": 450
                 },
                 "data": {
-                    "tool_id": "pagerduty",
-                    "capability": "trigger_incident",
+                    "tool_id": "ip_geolocation",
                     "parent_parallel": "dispatch_notifications",
-                    "skip_if": "{{ state.escalation_level < 1 }}",
                     "input_mapping": {
-                        "severity": "{{ 'critical' if state.escalation_level >= 2 else 'warning' }}",
-                        "summary": "Infrastructure event: {{ state.resolved_sites | join(', ') }}",
-                        "details": "{{ state.risk_summary }}"
+                        "ip": "8.8.8.8"
                     },
                     "output_mapping": {
-                        "pagerduty_sent": true
+                        "ip_data": "{{ http_response }}"
                     }
                 }
             },
             {
-                "id": "email_notify",
-                "type": "tool_call",
-                "label": "Email Notification",
+                "id": "uuid_generator",
+                "type": "tool",
+                "label": "Generate Ticket ID",
                 "position": {
                     "x": 1980,
                     "y": 450
                 },
                 "data": {
-                    "tool_id": "email",
-                    "capability": "send_email",
+                    "tool_id": "uuid_generator",
                     "parent_parallel": "dispatch_notifications",
-                    "skip_if": "{{ state.escalation_level < 1 }}",
-                    "input_mapping": {
-                        "to": "{{ env.OPS_EMAIL | default('ops@example.com') }}",
-                        "subject": "[L{{ state.escalation_level }}] Infrastructure Event — {{ state.resolved_sites | first | default('unknown') }}",
-                        "body": "{{ state.risk_summary }}"
-                    },
+                    "input_mapping": {},
                     "output_mapping": {
-                        "email_sent": true
+                        "incident_ticket_id": "{{ http_response.uuid }}"
                     }
                 }
             },
@@ -381,31 +368,31 @@
             {
                 "id": "e9",
                 "source": "dispatch_notifications",
-                "target": "slack_notify"
+                "target": "weather_lookup"
             },
             {
                 "id": "e10",
                 "source": "dispatch_notifications",
-                "target": "pagerduty_notify"
+                "target": "ip_geolocation"
             },
             {
                 "id": "e11",
                 "source": "dispatch_notifications",
-                "target": "email_notify"
+                "target": "uuid_generator"
             },
             {
                 "id": "e12",
-                "source": "slack_notify",
+                "source": "weather_lookup",
                 "target": "generate_summary"
             },
             {
                 "id": "e13",
-                "source": "pagerduty_notify",
+                "source": "ip_geolocation",
                 "target": "generate_summary"
             },
             {
                 "id": "e14",
-                "source": "email_notify",
+                "source": "uuid_generator",
                 "target": "generate_summary"
             },
             {

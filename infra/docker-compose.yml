@@ -24,7 +24,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-agent}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret}
     ports:
-      - "5432:5432"
+      - "5433:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-agent} -d ${POSTGRES_DB:-agent_builder}"]
       interval: 10s
@@ -145,6 +145,7 @@ services:
         condition: service_started
     volumes:
       - ../apps/agent-builder-backend:/app
+      - /app/.venv
       - ../keys:/keys:ro
     environment:
       APP_ENV: development
@@ -188,6 +189,7 @@ services:
         condition: service_started
     volumes:
       - ../apps/agent-builder-backend:/app
+      - /app/.venv
       - ../keys:/keys:ro
     command: ["uv", "run", "python", "-m", "app.temporal.worker"]
     environment:
@@ -220,6 +222,7 @@ services:
         condition: service_healthy
     volumes:
       - ../apps/agent-builder-backend:/app
+      - /app/.venv
     command: ["uv", "run", "celery", "-A", "app.celery_app", "worker", "--loglevel=info", "-Q", "default,webhooks,cache,reports", "--concurrency=4"]
     environment:
       APP_ENV: development
@@ -243,6 +246,9 @@ services:
     networks: [agent_net]
     depends_on:
       - redis
+    volumes:
+      - ../apps/agent-builder-backend:/app
+      - /app/.venv
     command: ["uv", "run", "celery", "-A", "app.celery_app", "flower", "--port=5555", "--broker=redis://redis:6379/1"]
     ports:
       - "5555:5555"

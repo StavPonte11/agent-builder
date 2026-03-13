@@ -1,14 +1,15 @@
 """
 Blueprint model — the core workflow/agent definition stored as React Flow JSON.
 """
-from __future__ import annotations
+
 
 import enum
 import uuid
+from typing import Optional
 
-from sqlalchemy import Enum, ForeignKey, Integer, String, Boolean
+from sqlalchemy import Enum, String, Boolean, Integer
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlmodel import Field
 
 from app.models.base import TimestampedBase
 
@@ -26,59 +27,80 @@ class BlueprintStatus(str, enum.Enum):
     ARCHIVED = "archived"
 
 
-class Blueprint(TimestampedBase):
+class Blueprint(TimestampedBase, table=True):
     __tablename__ = "blueprints"
 
-    org_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False, index=True
+    org_id: uuid.UUID = Field(
+        foreign_key="organizations.id",
+        nullable=False,
+        index=True,
+        sa_type=UUID(as_uuid=True)
     )
-    created_by: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
+    created_by: uuid.UUID = Field(
+        foreign_key="users.id",
+        nullable=False,
+        sa_type=UUID(as_uuid=True)
     )
-    name: Mapped[str] = mapped_column(String(255), nullable=False)
-    description: Mapped[str] = mapped_column(String(2000), nullable=False, default="")
-    blueprint_type: Mapped[BlueprintType] = mapped_column(
-        Enum(BlueprintType, name="blueprint_type"), nullable=False
+    name: str = Field(sa_type=String(255), nullable=False)
+    description: str = Field(sa_type=String(2000), nullable=False, default="")
+    blueprint_type: BlueprintType = Field(
+        sa_type=Enum(BlueprintType, name="blueprint_type"),
+        nullable=False
     )
     # Full React Flow node/edge graph serialized to JSON
-    definition: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    definition: dict = Field(sa_type=JSONB, nullable=False, default_factory=dict)
     # Compiled LangGraph definition (stored for fast execution)
-    compiled_graph: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    compiled_graph: dict = Field(sa_type=JSONB, nullable=False, default_factory=dict)
     # Optional org-level immutable system prompt
-    base_prompt_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("base_prompts.id"), nullable=True
+    base_prompt_id: Optional[uuid.UUID] = Field(
+        default=None,
+        foreign_key="base_prompts.id",
+        nullable=True,
+        sa_type=UUID(as_uuid=True)
     )
-    config: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
-    status: Mapped[BlueprintStatus] = mapped_column(
-        Enum(BlueprintStatus, name="blueprint_status"),
+    config: dict = Field(sa_type=JSONB, nullable=False, default_factory=dict)
+    status: BlueprintStatus = Field(
+        sa_type=Enum(BlueprintStatus, name="blueprint_status"),
         nullable=False,
         default=BlueprintStatus.DRAFT,
         index=True,
     )
-    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
-    published_version: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    version: int = Field(sa_type=Integer, nullable=False, default=1)
+    published_version: int = Field(sa_type=Integer, nullable=False, default=0)
     # For versioning: parent_id points to the blueprint this was forked from
-    parent_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("blueprints.id"), nullable=True
+    parent_id: Optional[uuid.UUID] = Field(
+        default=None,
+        foreign_key="blueprints.id",
+        nullable=True,
+        sa_type=UUID(as_uuid=True)
     )
-    tags: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
-    meta_data: Mapped[dict] = mapped_column(
-        JSONB, nullable=False, default=dict, name="blueprint_metadata"
+    tags: list[str] = Field(sa_type=ARRAY(String), nullable=False, default_factory=list)
+    meta_data: dict = Field(
+        sa_type=JSONB,
+        nullable=False,
+        default_factory=dict,
+        sa_column_kwargs={"name": "blueprint_metadata"}
     )
 
 
-class BlueprintVersion(TimestampedBase):
+class BlueprintVersion(TimestampedBase, table=True):
     """Immutable snapshot of each published version."""
 
     __tablename__ = "blueprint_versions"
 
-    blueprint_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("blueprints.id"), nullable=False, index=True
+    blueprint_id: uuid.UUID = Field(
+        foreign_key="blueprints.id",
+        nullable=False,
+        index=True,
+        sa_type=UUID(as_uuid=True)
     )
-    version: Mapped[int] = mapped_column(Integer, nullable=False)
-    definition: Mapped[dict] = mapped_column(JSONB, nullable=False)
-    published_by: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
+    version: int = Field(sa_type=Integer, nullable=False)
+    definition: dict = Field(sa_type=JSONB, nullable=False)
+    published_by: uuid.UUID = Field(
+        foreign_key="users.id",
+        nullable=False,
+        sa_type=UUID(as_uuid=True)
     )
-    release_notes: Mapped[str] = mapped_column(String(5000), nullable=False, default="")
-    is_rollback_target: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    release_notes: str = Field(sa_type=String(5000), nullable=False, default="")
+    is_rollback_target: bool = Field(sa_type=Boolean, nullable=False, default=True)
+

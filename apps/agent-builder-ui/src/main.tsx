@@ -4,10 +4,12 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter } from 'react-router-dom'
 import { I18nextProvider } from 'react-i18next'
 
+
 import { queryClient } from '@/lib/query-client'
 import i18n from '@/i18n'
 import App from './App'
 import { ErrorBoundary } from '@/components/layout/error-boundary'
+import { ThemeProvider } from '@/components/theme-provider'
 import './index.css'
 
 const rootElement = document.getElementById('root')
@@ -21,7 +23,9 @@ createRoot(rootElement).render(
             <I18nextProvider i18n={i18n}>
                 <QueryClientProvider client={queryClient}>
                     <BrowserRouter>
-                        <App />
+                        <ThemeProvider defaultTheme="dark" storageKey="agent-builder-theme">
+                            <App />
+                        </ThemeProvider>
                     </BrowserRouter>
                 </QueryClientProvider>
             </I18nextProvider>

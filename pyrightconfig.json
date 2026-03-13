@@ -1,0 +1,9 @@
+{
+  "executionEnvironments": [
+    {
+      "root": "apps/agent-builder-backend",
+      "venvPath": "apps/agent-builder-backend",
+      "venv": ".venv_dev"
+    }
+  ]
+}

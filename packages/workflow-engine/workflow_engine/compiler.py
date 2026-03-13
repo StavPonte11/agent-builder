@@ -382,7 +382,7 @@ class BlueprintCompiler:
             "changed_prompts": changed_prompts,
         }
 
-    def compile(self, definition: dict) -> Any:
+    def compile(self, definition: dict, checkpointer=None) -> Any:
         """
         Compile a Blueprint v2.0 definition into a runnable LangGraph StateGraph.
         Attaches guardrails, Langfuse spans, and PostgreSQL checkpointing.
@@ -426,7 +426,7 @@ class BlueprintCompiler:
             if not src_node:
                 continue
             src_type = src_node.get("type")
-            if src_type in ("condition", "router", "approval", "llm_judge"):
+            if src_type in ("condition", "router", "approval", "llm_judge", "supervisor"):
                 if src not in conditional_edges:
                     conditional_edges[src] = {}
                 conditional_edges[src][handle] = tgt
@@ -447,6 +447,9 @@ class BlueprintCompiler:
                 workflow.add_edge(nid, END)
 
         workflow.set_entry_point(start_node_id)
+        
+        if checkpointer is not None:
+            return workflow.compile(checkpointer=checkpointer)
 
         # Attach PostgreSQL checkpointer if pool available
         if self._db_pool:
@@ -587,16 +590,33 @@ class BlueprintCompiler:
 
                 elif node_type == "code":
                     code = data.get("code", "def execute(state): return state")
+                    timeout_secs = min(int(data.get("timeout", 10)), 60) # cap at 60s
+                    
+                    def _run_restricted():
+                        try:
+                            from RestrictedPython import compile_restricted, safe_globals
+                            byte_code = compile_restricted(code, "<string>", "exec")
+                            glb = {**safe_globals, "state": context}
+                            exec(byte_code, glb)
+                            fn = glb.get("execute")
+                            if callable(fn):
+                                return fn(context)
+                            return {}
+                        except Exception as inner_err:
+                            return {"error": str(inner_err)}
+
                     try:
-                        from RestrictedPython import compile_restricted, safe_globals
-                        byte_code = compile_restricted(code, "<string>", "exec")
-                        glb = {**safe_globals, "state": context}
-                        exec(byte_code, glb)
-                        fn = glb.get("execute")
-                        if callable(fn):
-                            result = fn(context)
-                            if isinstance(result, dict):
-                                context.update(result)
+                        import concurrent.futures
+                        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                            future = executor.submit(_run_restricted)
+                            try:
+                                result = future.result(timeout=timeout_secs)
+                                if isinstance(result, dict):
+                                    if "error" in result:
+                                        raise RuntimeError(result["error"])
+                                    context.update(result)
+                            except concurrent.futures.TimeoutError:
+                                raise TimeoutError(f"Code execution exceeded {timeout_secs}s timeout. Possible infinite loop in Code Node.")
                     except Exception as code_err:
                         context[f"{node_id}_error"] = str(code_err)
 
@@ -623,6 +643,49 @@ class BlueprintCompiler:
 
                 elif node_type == "sub_blueprint":
                     context[f"{node_id}_branch"] = "output"
+
+                elif node_type == "supervisor":
+                    from app.services.llm_provider_pool import LLMProviderPool
+                    pool = llm_pool or LLMProviderPool()
+                    import json
+                    
+                    routing_prompt = data.get("system_prompt", "You are a swarm supervisor.")
+                    workers_str = data.get("worker_nodes", "")
+                    
+                    system_prompt = _simple_render_jinja(routing_prompt, context)
+                    system_prompt += f"\n\nAVAILABLE WORKERS: {workers_str}\nChoose a worker to execute next, or FINISH if the objective is met."
+                    
+                    # Convert the dictionary-based context to a safe string for the user prompt
+                    safe_context = {k: v for k, v in context.items() if not k.startswith("_")}
+                    user_prompt = f"Current context:\n{json.dumps(safe_context, default=str)[:3000]}"
+                    
+                    schema_str = json.dumps({
+                        "type": "object",
+                        "properties": {
+                            "next": {"type": "string", "description": f"The exact name of the next worker, or FINISH"}
+                        },
+                        "required": ["next"]
+                    })
+                    
+                    result_text = pool.call(
+                        model=data.get("model", "gpt-4o-mini"),
+                        system=system_prompt,
+                        user=user_prompt,
+                        max_tokens=150,
+                        output_schema=schema_str
+                    )
+                    
+                    try:
+                        parsed = json.loads(result_text)
+                        next_node = parsed.get("next", "FINISH")
+                    except Exception:
+                        next_node = "FINISH"
+                        
+                    context[f"{node_id}_result"] = result_text
+                    context[f"{node_id}_branch"] = next_node
+                    
+                    if span:
+                        span.update(output={"supervisor_decision": next_node})
 
             except Exception as node_err:
                 context[f"{node_id}_error"] = str(node_err)

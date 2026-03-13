@@ -1,15 +1,16 @@
 """
 Execution model — every blueprint run (sandbox or production).
 """
-from __future__ import annotations
+
 
 import enum
 import uuid
 from datetime import datetime
+from typing import Optional
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Boolean
+from sqlalchemy import DateTime, Enum, String, Boolean, Integer
 from sqlalchemy.dialects.postgresql import JSONB, UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlmodel import Field
 
 from app.models.base import TimestampedBase
 
@@ -29,62 +30,82 @@ class ExecutionStatus(str, enum.Enum):
     TIMED_OUT = "timed_out"
 
 
-class Execution(TimestampedBase):
+class Execution(TimestampedBase, table=True):
     __tablename__ = "executions"
 
-    blueprint_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("blueprints.id"), nullable=False, index=True
+    blueprint_id: uuid.UUID = Field(
+        foreign_key="blueprints.id",
+        nullable=False,
+        index=True,
+        sa_type=UUID(as_uuid=True)
     )
-    blueprint_version: Mapped[int] = mapped_column(Integer, nullable=False)
-    triggered_by: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+    blueprint_version: int = Field(sa_type=Integer, nullable=False)
+    triggered_by: Optional[uuid.UUID] = Field(
+        default=None,
+        foreign_key="users.id",
+        nullable=True,
+        sa_type=UUID(as_uuid=True)
     )
-    org_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False, index=True
+    org_id: uuid.UUID = Field(
+        foreign_key="organizations.id",
+        nullable=False,
+        index=True,
+        sa_type=UUID(as_uuid=True)
     )
-    execution_mode: Mapped[ExecutionMode] = mapped_column(
-        Enum(ExecutionMode, name="execution_mode"), nullable=False
+    execution_mode: ExecutionMode = Field(
+        sa_type=Enum(ExecutionMode, name="execution_mode"),
+        nullable=False
     )
-    status: Mapped[ExecutionStatus] = mapped_column(
-        Enum(ExecutionStatus, name="execution_status"),
+    status: ExecutionStatus = Field(
+        sa_type=Enum(ExecutionStatus, name="execution_status"),
         nullable=False,
         default=ExecutionStatus.PENDING,
         index=True,
     )
-    input_data: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
-    output_data: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    input_data: dict = Field(sa_type=JSONB, nullable=False, default_factory=dict)
+    output_data: dict = Field(sa_type=JSONB, nullable=False, default_factory=dict)
     # Temporal workflow references
-    temporal_workflow_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    temporal_run_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    temporal_workflow_id: Optional[str] = Field(sa_type=String(255), nullable=True, default=None)
+    temporal_run_id: Optional[str] = Field(sa_type=String(255), nullable=True, default=None)
     # Langfuse tracing
-    langfuse_trace_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    langfuse_session_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    started_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
+    langfuse_trace_id: Optional[str] = Field(sa_type=String(255), nullable=True, default=None)
+    langfuse_session_id: Optional[str] = Field(sa_type=String(255), nullable=True, default=None)
+    started_at: Optional[datetime] = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),
+        nullable=True
     )
-    completed_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
+    completed_at: Optional[datetime] = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),
+        nullable=True
     )
-    duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    duration_ms: Optional[int] = Field(sa_type=Integer, nullable=True, default=None)
     # Token usage: {prompt_tokens, completion_tokens, total_tokens, cost_usd}
-    token_usage: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    token_usage: dict = Field(sa_type=JSONB, nullable=False, default_factory=dict)
     # Per-node execution trace
-    node_executions: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
-    error_details: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
-    is_sandbox: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    node_executions: dict = Field(sa_type=JSONB, nullable=False, default_factory=dict)
+    error_details: dict = Field(sa_type=JSONB, nullable=False, default_factory=dict)
+    is_sandbox: bool = Field(sa_type=Boolean, nullable=False, default=False)
 
 
-class ExecutionApproval(TimestampedBase):
+class ExecutionApproval(TimestampedBase, table=True):
     """Human-in-the-loop approval required at an ApprovalNode."""
 
     __tablename__ = "execution_approvals"
 
-    execution_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("executions.id"), nullable=False, index=True
+    execution_id: uuid.UUID = Field(
+        foreign_key="executions.id",
+        nullable=False,
+        index=True,
+        sa_type=UUID(as_uuid=True)
     )
-    node_id: Mapped[str] = mapped_column(String(255), nullable=False)
-    requested_by: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+    node_id: str = Field(sa_type=String(255), nullable=False)
+    requested_by: Optional[uuid.UUID] = Field(
+        default=None,
+        foreign_key="users.id",
+        nullable=True,
+        sa_type=UUID(as_uuid=True)
     )
 
     class ApprovalStatus(str, enum.Enum):
@@ -93,19 +114,27 @@ class ExecutionApproval(TimestampedBase):
         REJECTED = "rejected"
         TIMED_OUT = "timed_out"
 
-    status: Mapped[ApprovalStatus] = mapped_column(
-        Enum(ApprovalStatus, name="approval_status"),
+    status: ApprovalStatus = Field(
+        sa_type=Enum(ApprovalStatus, name="approval_status"),
         nullable=False,
         default=ApprovalStatus.PENDING,
     )
-    requested_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
+    requested_at: Optional[datetime] = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),
+        nullable=True
     )
-    resolved_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
+    resolved_at: Optional[datetime] = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),
+        nullable=True
     )
-    resolver_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+    resolver_id: Optional[uuid.UUID] = Field(
+        default=None,
+        foreign_key="users.id",
+        nullable=True,
+        sa_type=UUID(as_uuid=True)
     )
-    context_data: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
-    resolution_notes: Mapped[str] = mapped_column(String(2000), nullable=False, default="")
+    context_data: dict = Field(sa_type=JSONB, nullable=False, default_factory=dict)
+    resolution_notes: str = Field(sa_type=String(2000), nullable=False, default="")
+

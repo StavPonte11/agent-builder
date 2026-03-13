@@ -20,13 +20,15 @@ interface ToolCapability {
 }
 
 interface Tool {
-    tool_id: string
+    tool_id?: string
+    id?: string
     name: string
-    version: string
+    display_name?: string
+    version?: string
     description: string
-    tags: string[]
-    capabilities: ToolCapability[]
-    health_status: 'healthy' | 'degraded' | 'offline' | 'unknown'
+    tags?: string[]
+    capabilities?: ToolCapability[]
+    health_status?: 'healthy' | 'degraded' | 'offline' | 'unknown'
     used_in_blueprints?: number
     metrics?: {
         calls_24h: number
@@ -43,7 +45,7 @@ function HealthBadge({ status }: { status: Tool['health_status'] }) {
         offline: { color: 'bg-red-500', text: 'Offline', icon: XCircle },
         unknown: { color: 'bg-muted-foreground', text: 'Unknown', icon: WifiOff },
     }
-    const { color, text, icon: Icon } = map[status] ?? map.unknown
+    const { color, text, icon: Icon } = map[status ?? 'unknown'] ?? map.unknown
     return (
         <span className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold text-white ${color}`}>
             <Icon className="h-3 w-3" />
@@ -214,7 +216,7 @@ function ToolCard({ tool }: { tool: Tool }) {
 
                             {/* Tags */}
                             <div className="flex flex-wrap gap-1">
-                                {tool.tags.map(tag => (
+                                {(tool.tags || []).map(tag => (
                                     <span key={tag} className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">{tag}</span>
                                 ))}
                                 {tool.used_in_blueprints !== undefined && (
@@ -225,28 +227,30 @@ function ToolCard({ tool }: { tool: Tool }) {
                             </div>
 
                             {/* Capabilities */}
-                            <div>
-                                <p className="text-xs font-semibold text-muted-foreground mb-2">CAPABILITIES</p>
-                                <div className="space-y-2">
-                                    {tool.capabilities.map(cap => (
-                                        <div key={cap.name} className="flex items-center justify-between rounded-lg border border-border bg-muted/20 px-3 py-2">
-                                            <div>
-                                                <p className="text-sm font-medium text-foreground">{cap.name}</p>
-                                                <p className="text-xs text-muted-foreground">{cap.description}</p>
-                                                {cap.estimated_latency_ms && (
-                                                    <p className="text-[10px] text-muted-foreground mt-0.5">~{cap.estimated_latency_ms}ms</p>
-                                                )}
+                            {(tool.capabilities || []).length > 0 && (
+                                <div>
+                                    <p className="text-xs font-semibold text-muted-foreground mb-2">CAPABILITIES</p>
+                                    <div className="space-y-2">
+                                        {(tool.capabilities || []).map(cap => (
+                                            <div key={cap.name} className="flex items-center justify-between rounded-lg border border-border bg-muted/20 px-3 py-2">
+                                                <div>
+                                                    <p className="text-sm font-medium text-foreground">{cap.name}</p>
+                                                    <p className="text-xs text-muted-foreground">{cap.description}</p>
+                                                    {cap.estimated_latency_ms && (
+                                                        <p className="text-[10px] text-muted-foreground mt-0.5">~{cap.estimated_latency_ms}ms</p>
+                                                    )}
+                                                </div>
+                                                <button
+                                                    onClick={() => setTestState({ cap })}
+                                                    className="flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1 text-xs font-medium hover:bg-accent transition-colors"
+                                                >
+                                                    <Play className="h-3 w-3" /> Test
+                                                </button>
                                             </div>
-                                            <button
-                                                onClick={() => setTestState({ cap })}
-                                                className="flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1 text-xs font-medium hover:bg-accent transition-colors"
-                                            >
-                                                <Play className="h-3 w-3" /> Test
-                                            </button>
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
+                            )}
 
                             {/* Actions */}
                             <div className="flex items-center gap-2">
@@ -282,11 +286,11 @@ export function ToolsPage() {
         refetchInterval: 30_000,
     })
 
-    const filtered = tools.filter(t => {
+    const filtered = (Array.isArray(tools) ? tools : []).filter(t => {
         const matchSearch = !search ||
-            t.name.toLowerCase().includes(search.toLowerCase()) ||
-            t.description.toLowerCase().includes(search.toLowerCase()) ||
-            t.tags.some(tag => tag.includes(search.toLowerCase()))
+            (t.name || '').toLowerCase().includes(search.toLowerCase()) ||
+            (t.description || '').toLowerCase().includes(search.toLowerCase()) ||
+            (t.tags || []).some(tag => tag.includes(search.toLowerCase()))
         const matchHealth = healthFilter === 'all' || t.health_status === healthFilter
         return matchSearch && matchHealth
     })

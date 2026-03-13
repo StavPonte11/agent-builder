@@ -57,7 +57,7 @@ try:
         host=os.getenv("LANGFUSE_HOST", "http://localhost:3100"),
     )
     LANGFUSE_ENABLED = bool(os.getenv("LANGFUSE_PUBLIC_KEY"))
-except ImportError:
+except Exception as e:
     langfuse = None
     LANGFUSE_ENABLED = False
 

@@ -22,7 +22,8 @@ function deriveStateFields(nodes: Node[]): DerivedStateField[] {
         const nodeLabel = (d.label as string) || nodeId
 
         // Output mappings write to state fields
-        const outputMappings = (d.output_mapping as MappingEntry[] | undefined) ?? []
+        const rawOutput = d.output_mapping as MappingEntry[] | undefined
+        const outputMappings = Array.isArray(rawOutput) ? rawOutput : []
         for (const m of outputMappings) {
             if (!m.param) continue
             if (!written[m.param]) written[m.param] = []
@@ -30,8 +31,10 @@ function deriveStateFields(nodes: Node[]): DerivedStateField[] {
         }
 
         // Input mappings read from state fields (via expressions like {{ state.field }})
-        const inputMappings = (d.input_mapping as MappingEntry[] | undefined) ?? []
+        const rawInput = d.input_mapping as MappingEntry[] | undefined
+        const inputMappings = Array.isArray(rawInput) ? rawInput : []
         for (const m of inputMappings) {
+            if (!m.expression) continue
             const matches = m.expression.matchAll(/\{\{[\s]*state\.([\w.]+)[\s]*\}\}/g)
             for (const match of matches) {
                 const field = match[1]
@@ -99,17 +102,23 @@ export function StateSchemaInspector() {
         <div className="border-t border-border bg-card/80 backdrop-blur-sm">
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-2">
-                <div className="flex items-center gap-2">
-                    <Database className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="text-xs font-semibold text-foreground">State Schema</span>
-                    <span className="text-[10px] text-muted-foreground">{fields.length} fields</span>
-                    {warnings.length > 0 && (
-                        <span className="flex items-center gap-0.5 rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400">
-                            <AlertTriangle className="h-3 w-3" />
-                            {warnings.length} warning{warnings.length > 1 ? 's' : ''}
-                        </span>
-                    )}
+                <div className="flex flex-col">
+                    <div className="flex items-center gap-2">
+                        <Database className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="text-xs font-semibold text-foreground">State Schema</span>
+                        <span className="text-[10px] text-muted-foreground">{fields.length} fields</span>
+                        {warnings.length > 0 && (
+                            <span className="flex items-center gap-0.5 rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400">
+                                <AlertTriangle className="h-3 w-3" />
+                                {warnings.length} warning{warnings.length > 1 ? 's' : ''}
+                            </span>
+                        )}
+                    </div>
+                    <span className="text-[9px] text-muted-foreground ml-5 mt-0.5">
+                        Shared memory fields extracted from your nodes' Jinja templates (e.g. {'{{state.user_query}}'})
+                    </span>
                 </div>
+
                 {highlightedFieldNodes.producer || highlightedFieldNodes.consumers.length > 0 ? (
                     <button onClick={clearHighlight} className="text-[10px] text-muted-foreground hover:text-foreground">
                         Clear highlight

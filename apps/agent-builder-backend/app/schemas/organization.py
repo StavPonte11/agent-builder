@@ -24,6 +24,7 @@ class OrganizationResponse(BaseModel):
 class OrganizationUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=255)
     settings: dict | None = None
+    provider_keys: dict | None = None
 
 
 # Admin-only

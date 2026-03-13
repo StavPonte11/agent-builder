@@ -30,6 +30,7 @@ class BlueprintUpdate(BaseModel):
     base_prompt_id: uuid.UUID | None = None
     config: dict | None = None
     tags: list[str] | None = None
+    expected_version: int | None = Field(default=None, description="Used for optimistic concurrency control")
 
 
 class BlueprintResponse(BaseModel):

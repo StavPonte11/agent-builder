@@ -73,14 +73,42 @@ class BlueprintService(BaseService):
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Cannot edit a published blueprint. Create a new draft instead.",
             )
-        for field, value in data.model_dump(exclude_none=True).items():
+            
+        # Optimistic Concurrency Check
+        if data.expected_version is not None and blueprint.version != data.expected_version:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Blueprint was modified by another session (expected v{data.expected_version}, got v{blueprint.version}). Please refresh.",
+            )
+            
+        for field, value in data.model_dump(exclude_none=True, exclude={"expected_version"}).items():
             setattr(blueprint, field, value)
+            
+        # Auto-increment version on significant change could go here, but currently
+        # version increments happen during Publish. For draft auto-saves, we keep the version
+        # stable or use an internal revision counter if needed. For now, OCC validates against the current version.
+        
         await self._db.flush()
         return blueprint
 
     async def delete(self, blueprint_id: uuid.UUID) -> None:
         self._require_builder_or_admin()
         blueprint = await self._get_by_id(Blueprint, blueprint_id)
+        
+        # Clean up orphan Temporal crons
+        from app.models.trigger import Trigger
+        from app.services.scheduler_service import SchedulerService
+        stmt = select(Trigger).where(Trigger.blueprint_id == blueprint_id)
+        result = await self._db.execute(stmt)
+        triggers = result.scalars().all()
+        
+        if triggers:
+            scheduler_svc = SchedulerService(self._db)
+            for trigger in triggers:
+                await scheduler_svc.unregister_schedule(trigger)
+                # optionally soft delete the trigger here too, but blueprint soft-delete covers mostly
+                trigger.is_active = False 
+
         await self._soft_delete(blueprint)
 
     # -----------------------------------------------------------------------

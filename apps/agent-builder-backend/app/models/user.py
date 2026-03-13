@@ -1,16 +1,16 @@
 """
 User model with roles and preferences.
 """
-from __future__ import annotations
+
 
 import enum
 import uuid
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import DateTime, Enum, ForeignKey, String, Boolean
+from sqlalchemy import DateTime, Enum, String, Boolean
 from sqlalchemy.dialects.postgresql import JSONB, UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlmodel import Field, Relationship
 
 from app.models.base import TimestampedBase
 
@@ -24,24 +24,33 @@ class UserRole(str, enum.Enum):
     VIEWER = "viewer"
 
 
-class User(TimestampedBase):
+class User(TimestampedBase, table=True):
     __tablename__ = "users"
 
-    org_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False, index=True
+    org_id: uuid.UUID = Field(
+        foreign_key="organizations.id",
+        nullable=False,
+        index=True,
+        sa_type=UUID(as_uuid=True)
     )
-    email: Mapped[str] = mapped_column(String(320), nullable=False, unique=True, index=True)
-    hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
-    role: Mapped[UserRole] = mapped_column(
-        Enum(UserRole, name="user_role"), nullable=False, default=UserRole.BUILDER
+    email: str = Field(sa_type=String(320), nullable=False, unique=True, index=True)
+    hashed_password: str = Field(sa_type=String(255), nullable=False)
+    role: UserRole = Field(
+        sa_type=Enum(UserRole, name="user_role"),
+        nullable=False,
+        default=UserRole.BUILDER
     )
-    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
-    last_login: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
+    is_active: bool = Field(sa_type=Boolean, nullable=False, default=True)
+    last_login: Optional[datetime] = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),
+        nullable=True
     )
-    preferences: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    preferences: dict = Field(sa_type=JSONB, nullable=False, default_factory=dict)
 
     # Relationships
-    organization: Mapped["Organization"] = relationship(
-        "Organization", back_populates="users", lazy="noload"
+    organization: Optional["Organization"] = Relationship(
+        back_populates="users",
+        sa_relationship_kwargs={"lazy": "noload"}
     )
+

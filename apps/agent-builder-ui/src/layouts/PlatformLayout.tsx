@@ -20,6 +20,7 @@ import { useUIStore } from '@/stores/uiStore'
 import { cn } from '@/lib/utils'
 import { Toaster } from 'sonner'
 import { useTranslation } from 'react-i18next'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 const NAVIGATION = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -168,6 +169,7 @@ export default function PlatformLayout() {
                             <option value="en">English</option>
                             <option value="he">עברית</option>
                         </select>
+                        <ThemeToggle />
                     </div>
                 </header>
 

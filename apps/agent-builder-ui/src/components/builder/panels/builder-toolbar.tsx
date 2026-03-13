@@ -5,12 +5,13 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import {
     Save, Undo, Redo, Play, CloudUpload, Sparkles, CheckCircle2,
-    AlertTriangle, DollarSign, LayoutGrid, Loader2, ChevronDown, X
+    AlertTriangle, DollarSign, LayoutGrid, Loader2, ChevronDown, X, Code
 } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 import { useCanvasStore } from '@/stores/canvasStore'
 import { serializeBlueprint } from '@/lib/blueprint-serializer'
 import type { ValidationResult, CostEstimate } from '@/types/blueprint'
+import { JsonViewModal } from './json-view-modal'
 
 const STATUS_COLORS: Record<string, string> = {
     draft: 'bg-slate-500/15 text-slate-500 border-slate-500/20',
@@ -90,8 +91,9 @@ export function BuilderToolbar() {
         }
     }, [nlPrompt, nodes, edges])
 
-    // ── Save ─────────────────────────────────────────────────────────────────
+    // ── Save & JSON ──────────────────────────────────────────────────────────
     const [saving, setSaving] = useState(false)
+    const [showJsonModal, setShowJsonModal] = useState(false)
     const handleSave = async () => {
         if (!id) return
         setSaving(true)
@@ -218,6 +220,14 @@ export function BuilderToolbar() {
                         Validate
                     </button>
 
+                    <button
+                        onClick={() => setShowJsonModal(true)}
+                        className="flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-foreground transition hover:bg-accent hover:text-primary disabled:opacity-50"
+                    >
+                        <Code className="h-3.5 w-3.5 cursor-pointer" />
+                        JSON
+                    </button>
+
                     <div className="relative">
                         <button
                             onClick={handleEstimateCost}
@@ -317,6 +327,13 @@ export function BuilderToolbar() {
                     </p>
                 )}
             </div>
+
+            <JsonViewModal
+                open={showJsonModal}
+                onClose={() => setShowJsonModal(false)}
+                data={serializeBlueprint(nodes, edges)}
+            />
         </div>
     )
 }
+

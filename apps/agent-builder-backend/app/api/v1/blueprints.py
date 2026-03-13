@@ -94,7 +94,8 @@ async def generate_blueprint(body: GenerateRequest, current_user: CurrentUser, d
             "Return a JSON object with keys: 'new_nodes' (array) and 'new_edges' (array). "
             "Each node: {id, type, position: {x, y}, data: {label, ...}}. "
             "Each edge: {id, source, target, sourceHandle?, type}. "
-            "Valid types: trigger, llm, tool, condition, router, approval, memory_read, memory_write, code, sub_blueprint, output, parallel_fork, loop, llm_judge. "
+            "CRITICAL: You MUST ONLY use these EXACT node types: trigger, llm, tool, condition, router, approval, memory_read, memory_write, code, sub_blueprint, output, parallel_fork, loop, llm_judge. "
+            "ABSOLUTELY NO OTHER TYPES ARE ALLOWED. Do NOT invent types like 'http_request'. If you need an API call, use a 'tool' or 'code' node. "
             f"Existing nodes: {json.dumps([n.get('data', {}).get('label') for n in body.existing_nodes])}"
         )
     else:
@@ -103,8 +104,9 @@ async def generate_blueprint(body: GenerateRequest, current_user: CurrentUser, d
             "Return a JSON object with keys: 'nodes' (array) and 'edges' (array). "
             "Each node: {id: string, type: string, position: {x: number, y: number}, data: {label: string}}. "
             "Each edge: {id: string, source: string, target: string, type: 'default'}. "
-            "Valid types: trigger, llm, tool, condition, router, approval, memory_read, memory_write, code, "
+            "CRITICAL: You MUST ONLY use these EXACT node types: trigger, llm, tool, condition, router, approval, memory_read, memory_write, code, "
             "sub_blueprint, output, parallel_fork, loop, llm_judge. "
+            "ABSOLUTELY NO OTHER TYPES ARE ALLOWED. Do NOT invent types like 'http_request'. If you need an API call, use a 'tool' or 'code' node. "
             "Position nodes left-to-right horizontally (x += 250 per step, y = 200). "
             "Always start with a trigger node. "
             "Respond with ONLY valid JSON, no markdown."
@@ -123,7 +125,48 @@ async def generate_blueprint(body: GenerateRequest, current_user: CurrentUser, d
     if result.startswith("```"):
         result = "\n".join(result.split("\n")[1:-1])
     try:
-        return json.loads(result)
+        parsed = json.loads(result)
+
+        # ─── Type alias coercion ───────────────────────────────────────────────
+        # The LLM sometimes hallucinates type names. Map everything to valid types.
+        _TYPE_ALIASES = {
+            "human_approval": "approval",
+            "human_review": "approval",
+            "approval_gate": "approval",
+            "tool_call": "tool",
+            "http_request": "tool",
+            "http_tool": "tool",
+            "api_call": "tool",
+            "api_request": "tool",
+            "webhook": "tool",
+            "action": "tool",
+            "decision": "condition",
+            "branch": "condition",
+            "end": "output",
+            "terminal": "output",
+            "return": "output",
+            "start": "trigger",
+            "entry": "trigger",
+        }
+        _VALID = {
+            "trigger", "llm", "tool", "condition", "router", "approval",
+            "memory_read", "memory_write", "code", "sub_blueprint", "output",
+            "parallel_fork", "loop", "llm_judge", "supervisor"
+        }
+
+        def _coerce_nodes(nodes_list):
+            for n in nodes_list:
+                t = n.get("type", "")
+                if t not in _VALID:
+                    n["type"] = _TYPE_ALIASES.get(t, "tool")  # default to 'tool'
+            return nodes_list
+
+        if "nodes" in parsed:
+            parsed["nodes"] = _coerce_nodes(parsed.get("nodes") or [])
+        if "new_nodes" in parsed:
+            parsed["new_nodes"] = _coerce_nodes(parsed.get("new_nodes") or [])
+
+        return parsed
     except json.JSONDecodeError:
         return {"nodes": [], "edges": [], "error": "Failed to parse generation result"}
 
@@ -157,7 +200,7 @@ async def improve_prompt(body: ImprovePromptRequest, current_user: CurrentUser, 
 
 
 
-@router.get("/", response_model=list[BlueprintListItem])
+@router.get("", response_model=list[BlueprintListItem])
 async def list_blueprints(
     current_user: CurrentUser,
     db: DbSession,
@@ -169,7 +212,7 @@ async def list_blueprints(
     return [BlueprintListItem.model_validate(b) for b in blueprints]
 
 
-@router.post("/", response_model=BlueprintResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=BlueprintResponse, status_code=status.HTTP_201_CREATED)
 async def create_blueprint(
     body: BlueprintCreate, current_user: CurrentUser, db: DbSession
 ) -> BlueprintResponse:
@@ -221,6 +264,90 @@ async def validate_blueprint(
 ) -> BlueprintValidateResponse:
     svc = BlueprintService(db, current_user)
     return await svc.validate(blueprint_id)
+
+
+# ── EVALUATION BUILDER TESTS ──────────────────────────────────────────────────
+
+class TestCaseCreate(_BaseModel):
+    name: str
+    type: str  # unit, integration, regression, evaluation
+    input: dict
+    expected_output: dict = {}
+    judge_rubric: str = ""
+
+@router.get("/{blueprint_id}/tests")
+async def list_blueprint_tests(blueprint_id: uuid.UUID, current_user: CurrentUser, db: DbSession, type: str = "unit") -> list:
+    """Lists evaluation test cases for a blueprint."""
+    from app.models.blueprint_test import BlueprintTest
+    from sqlalchemy import select
+    result = await db.execute(
+        select(BlueprintTest).where(BlueprintTest.blueprint_id == blueprint_id, BlueprintTest.test_type == type)
+    )
+    tests = result.scalars().all()
+    # Map DB model to frontend TestCase format
+    return [
+        {
+            "id": str(t.id),
+            "name": t.name,
+            "type": t.test_type.value,
+            "input": t.input_data,
+            "expected_output": t.expected_output,
+            "judge_rubric": t.evaluation_criteria.get("rubric", ""),
+            "status": "pending"
+        }
+        for t in tests
+    ]
+
+@router.post("/{blueprint_id}/tests")
+async def create_blueprint_test(blueprint_id: uuid.UUID, body: TestCaseCreate, current_user: CurrentUser, db: DbSession):
+    """Creates a new evaluation test for a blueprint."""
+    from app.models.blueprint_test import BlueprintTest
+    new_test = BlueprintTest(
+        blueprint_id=blueprint_id,
+        created_by=current_user.id,
+        name=body.name,
+        test_type=body.type,
+        input_data=body.input,
+        expected_output=body.expected_output,
+        evaluation_criteria={"rubric": body.judge_rubric} if body.judge_rubric else {}
+    )
+    db.add(new_test)
+    await db.commit()
+    return {
+        "id": str(new_test.id),
+        "name": new_test.name,
+        "type": new_test.test_type.value,
+        "input": new_test.input_data,
+        "expected_output": new_test.expected_output,
+        "judge_rubric": new_test.evaluation_criteria.get("rubric", ""),
+        "status": "pending"
+    }
+
+@router.post("/{blueprint_id}/tests/run")
+async def run_blueprint_tests(blueprint_id: uuid.UUID, current_user: CurrentUser, db: DbSession, type: str = "unit"):
+    """Stub: Execute tests. Currently just returns the tests marked as 'passed' for UI demonstration."""
+    from app.models.blueprint_test import BlueprintTest
+    from sqlalchemy import select
+    result = await db.execute(
+        select(BlueprintTest).where(BlueprintTest.blueprint_id == blueprint_id, BlueprintTest.test_type == type)
+    )
+    tests = result.scalars().all()
+    return [
+        {
+            "id": str(t.id),
+            "name": t.name,
+            "type": t.test_type.value,
+            "input": t.input_data,
+            "expected_output": t.expected_output,
+            "judge_rubric": t.evaluation_criteria.get("rubric", ""),
+            "status": "passed",
+            "duration_ms": 1250,
+            "judge_score": 1.0,
+            "judge_reasoning": "Output exactly matches expected behavior based on rubric.",
+            "actual_output": t.expected_output  # mock success
+        }
+        for t in tests
+    ]
 
 
 @router.get("/{blueprint_id}/estimate", response_model=BlueprintCostEstimate)

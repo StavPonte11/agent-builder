@@ -33,7 +33,7 @@ async_session_factory = async_sessionmaker(
 
 
 # ---------------------------------------------------------------------------
-# Declarative Base
+# SQLModel Base / Metadata
 # ---------------------------------------------------------------------------
 # Naming convention ensures consistent index/constraint naming for Alembic
 NAMING_CONVENTION: dict[str, str] = {
@@ -44,15 +44,12 @@ NAMING_CONVENTION: dict[str, str] = {
     "pk": "pk_%(table_name)s",
 }
 
+# Apply the naming convention to SQLModel's underlying SQLAlchemy metadata
+from sqlmodel import SQLModel
+SQLModel.metadata.naming_convention = NAMING_CONVENTION
 
-class Base(DeclarativeBase):
-    """Base declarative class for all models."""
-
-    metadata = MetaData(naming_convention=NAMING_CONVENTION)
-
-    # Allows using model attributes as dict
-    def to_dict(self) -> dict[str, Any]:
-        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+# Alias for compatibility: many modules do `from app.database import Base`
+Base = SQLModel
 
 
 # ---------------------------------------------------------------------------

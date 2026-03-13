@@ -31,7 +31,12 @@ class OrganizationService(BaseService):
         """Update org fields. Admins only."""
         self._require_admin()
         org = await self.get_my_org()
-        for field, value in data.model_dump(exclude_none=True).items():
+        dumped = data.model_dump(exclude_none=True)
+        
+        if "provider_keys" in dumped:
+            org.set_provider_keys(dumped.pop("provider_keys"))
+            
+        for field, value in dumped.items():
             setattr(org, field, value)
         await self._db.flush()
         return org
@@ -53,7 +58,12 @@ class OrganizationService(BaseService):
         if org is None:
             from fastapi import HTTPException, status
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found.")
-        for field, value in data.model_dump(exclude_none=True).items():
+            
+        dumped = data.model_dump(exclude_none=True)
+        if "provider_keys" in dumped:
+            org.set_provider_keys(dumped.pop("provider_keys"))
+            
+        for field, value in dumped.items():
             setattr(org, field, value)
         await self._db.flush()
         return org

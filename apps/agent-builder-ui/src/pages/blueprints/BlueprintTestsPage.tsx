@@ -11,7 +11,7 @@ import {
 } from 'lucide-react'
 import ReactDiffViewer, { DiffMethod } from 'react-diff-viewer'
 
-type TestType = 'unit' | 'integration' | 'regression'
+type TestType = 'unit' | 'integration' | 'regression' | 'evaluation'
 type TestStatus = 'pending' | 'running' | 'passed' | 'failed' | 'error'
 
 interface TestCase {
@@ -130,16 +130,40 @@ export function BlueprintTestsPage() {
 
     const runFailed = useMutation<TestCase[]>({
         mutationFn: () =>
-            fetch(`/api/v1/blueprints/${blueprintId}/tests/run-failed?type=${activeTab}`, { method: 'POST' })
+            fetch(`/api/v1/blueprints/${blueprintId}/tests/run?type=${activeTab}`, { method: 'POST' })
                 .then(r => r.json()),
         onSuccess: () => refetch(),
+    })
+
+    const [isAddingTest, setIsAddingTest] = useState(false)
+    const [newTest, setNewTest] = useState({ name: '', type: activeTab, input: '{}', expected_output: '{}', judge_rubric: '' })
+    const createTest = useMutation({
+        mutationFn: async () => {
+            const res = await fetch(`/api/v1/blueprints/${blueprintId}/tests`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: newTest.name,
+                    type: newTest.type,
+                    input: JSON.parse(newTest.input),
+                    expected_output: JSON.parse(newTest.expected_output),
+                    judge_rubric: newTest.judge_rubric
+                })
+            })
+            if (!res.ok) throw new Error("Failed to create test")
+            return res.json()
+        },
+        onSuccess: () => {
+            setIsAddingTest(false)
+            refetch()
+        }
     })
 
     const passed = tests.filter(t => t.status === 'passed').length
     const failed = tests.filter(t => t.status === 'failed').length
     const running = tests.some(t => t.status === 'running')
 
-    const tabs: TestType[] = ['unit', 'integration', 'regression']
+    const tabs: TestType[] = ['unit', 'integration', 'regression', 'evaluation']
 
     return (
         <div className="min-h-screen bg-background">
@@ -200,18 +224,53 @@ export function BlueprintTestsPage() {
                 )}
 
                 {/* Test list */}
-                {tests.length === 0 ? (
-                    <div className="text-center py-16 text-muted-foreground">
+                {isAddingTest ? (
+                    <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+                        <h3 className="font-semibold text-lg">Add {activeTab} Test</h3>
+                        <div className="space-y-3">
+                            <div>
+                                <label className="text-xs font-medium text-muted-foreground">Test Name</label>
+                                <input value={newTest.name} onChange={e => setNewTest({...newTest, name: e.target.value})} className="w-full h-9 rounded-md border bg-transparent px-3 text-sm" placeholder="e.g. Validates correct currency mapping" />
+                            </div>
+                            <div>
+                                <label className="text-xs font-medium text-muted-foreground">Input (JSON)</label>
+                                <textarea value={newTest.input} onChange={e => setNewTest({...newTest, input: e.target.value})} rows={3} className="w-full rounded-md border bg-transparent p-3 text-sm font-mono" />
+                            </div>
+                            <div>
+                                <label className="text-xs font-medium text-muted-foreground">Expected Output (JSON)</label>
+                                <textarea value={newTest.expected_output} onChange={e => setNewTest({...newTest, expected_output: e.target.value})} rows={3} className="w-full rounded-md border bg-transparent p-3 text-sm font-mono" />
+                            </div>
+                            {activeTab === 'evaluation' && (
+                                <div>
+                                    <label className="text-xs font-medium text-muted-foreground">Judge Rubric</label>
+                                    <textarea value={newTest.judge_rubric} onChange={e => setNewTest({...newTest, judge_rubric: e.target.value})} rows={2} className="w-full rounded-md border bg-transparent p-3 text-sm" placeholder="e.g. Check if output mentions specific company names" />
+                                </div>
+                            )}
+                            <div className="flex gap-2 justify-end pt-2">
+                                <button onClick={() => setIsAddingTest(false)} className="px-4 py-2 text-sm rounded-lg hover:bg-accent text-muted-foreground">Cancel</button>
+                                <button onClick={() => createTest.mutate()} disabled={createTest.isPending} className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90">
+                                    {createTest.isPending ? 'Saving...' : 'Save Test'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                ) : tests.length === 0 ? (
+                    <div className="text-center py-16 text-muted-foreground rounded-xl border border-dashed border-border">
                         <TestTubeSvg />
                         <p className="mt-3 text-sm font-medium">No {activeTab} tests yet</p>
                         <p className="text-xs mt-1">Tests created in this section run automatically during the publish wizard</p>
-                        <button className="mt-4 flex items-center gap-2 mx-auto rounded-xl border border-border px-4 py-2 text-sm hover:bg-accent">
+                        <button onClick={() => { setNewTest({...newTest, type: activeTab}); setIsAddingTest(true); }} className="mt-4 flex items-center gap-2 mx-auto rounded-xl border border-border px-4 py-2 text-sm hover:bg-accent">
                             <Plus className="h-4 w-4" /> Add Test
                         </button>
                     </div>
                 ) : (
-                    <div className="space-y-2">
-                        {tests.map(t => <TestRow key={t.id} test={t} />)}
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            {tests.map(t => <TestRow key={t.id} test={t} />)}
+                        </div>
+                        <button onClick={() => { setNewTest({...newTest, type: activeTab}); setIsAddingTest(true); }} className="flex items-center gap-2 text-sm text-primary hover:underline px-2 py-1">
+                            <Plus className="h-4 w-4" /> Add Another Test
+                        </button>
                     </div>
                 )}
             </div>

@@ -23,7 +23,24 @@ const chartData = [
     { name: 'Sun', executions: 349, errors: 20 },
 ]
 
+import { useQuery } from '@tanstack/react-query'
+import { apiClient } from '@/lib/api'
+import { Link, useNavigate } from 'react-router-dom'
+import { formatDistanceToNow } from 'date-fns'
+
 export default function DashboardPage() {
+    const navigate = useNavigate()
+
+    const { data: blueprints, isLoading } = useQuery({
+        queryKey: ['dashboard-blueprints'],
+        queryFn: async () => {
+            const { data, error } = await apiClient.GET('/api/v1/blueprints', {})
+            if (error) throw new Error('Failed to fetch blueprints')
+            return data
+        }
+    })
+
+    const recentBlueprints = blueprints ? blueprints.slice(0, 3) : []
     return (
         <>
             <div className="flex flex-col gap-6">
@@ -102,6 +119,47 @@ export default function DashboardPage() {
                             </ResponsiveContainer>
                         </div>
                     </div>
+                </div>
+
+                {/* Recent Blueprints */}
+                <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+                    <div className="mb-4 flex items-center justify-between">
+                        <h3 className="text-sm font-semibold text-foreground">Recent Blueprints</h3>
+                        <Link to="/blueprints" className="text-xs text-primary hover:underline">View all</Link>
+                    </div>
+                    {isLoading ? (
+                        <div className="flex h-32 items-center justify-center">
+                            <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                        </div>
+                    ) : recentBlueprints.length > 0 ? (
+                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                            {recentBlueprints.map((bp: any) => (
+                                <div key={bp.id} onClick={() => navigate(`/blueprints/${bp.id}`)} className="group cursor-pointer rounded-lg border border-border bg-muted/50 p-4 transition-colors hover:bg-muted">
+                                    <div className="flex items-center justify-between">
+                                        <h4 className="font-medium text-foreground line-clamp-1">{bp.name}</h4>
+                                        <span className={`rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wider font-semibold ${
+                                            bp.status === 'published' ? 'bg-green-500/10 text-green-500' :
+                                            bp.status === 'draft' ? 'bg-amber-500/10 text-amber-500' :
+                                            'bg-blue-500/10 text-blue-500'
+                                        }`}>
+                                            {bp.status || 'draft'}
+                                        </span>
+                                    </div>
+                                    <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+                                        <Clock className="h-3 w-3" />
+                                        <span>
+                                            {bp.updated_at ? formatDistanceToNow(new Date(bp.updated_at), { addSuffix: true }) : 'Unknown'}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="flex h-32 flex-col items-center justify-center rounded-lg border border-dashed border-border text-center">
+                            <p className="text-sm font-medium text-foreground">No recent blueprints</p>
+                            <Link to="/blueprints/new" className="mt-1 text-xs text-primary hover:underline">Create your first one</Link>
+                        </div>
+                    )}
                 </div>
             </div>
         </>

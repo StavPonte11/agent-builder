@@ -28,6 +28,7 @@ from app.models.publish_guardrail_notification import (
     PublishRequest,
     PublishRequestStatus,
 )
+from app.models.trigger import Trigger, TriggerType
 
 __all__ = [
     "TimestampedBase",
@@ -59,4 +60,6 @@ __all__ = [
     "Notification",
     "PublishRequest",
     "PublishRequestStatus",
+    "Trigger",
+    "TriggerType",
 ]

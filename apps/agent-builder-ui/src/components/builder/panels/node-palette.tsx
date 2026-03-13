@@ -42,6 +42,7 @@ const COMPOSITE_NODES: PaletteNode[] = [
     { type: 'parallel_fork', label: 'Parallel Fork', icon: SplitSquareHorizontal, desc: 'Fan out to N branches concurrently', color: 'text-violet-500', category: 'composite' },
     { type: 'loop', label: 'Loop', icon: Repeat2, desc: 'Iterate over a list in state', color: 'text-teal-500', category: 'composite' },
     { type: 'llm_judge', label: 'LLM Judge', icon: Scale, desc: 'Evaluate output against a rubric', color: 'text-rose-500', category: 'composite' },
+    { type: 'supervisor', label: 'Swarm Supervisor', icon: Circle, desc: 'Multi-Agent orchestrator', color: 'text-fuchsia-500', category: 'composite' },
 ]
 
 // ─── Health Badge ─────────────────────────────────────────────────────────────
@@ -177,8 +178,8 @@ export function NodePalette() {
 
     const onToolDragStart = useCallback((e: React.DragEvent, tool: Tool) => {
         e.dataTransfer.setData('application/reactflow', 'tool')
-        e.dataTransfer.setData('application/reactflow-label', tool.name)
-        e.dataTransfer.setData('application/reactflow-tool-id', tool.tool_id)
+        e.dataTransfer.setData('application/reactflow-label', (tool as any).display_name || tool.name)
+        e.dataTransfer.setData('application/reactflow-tool-id', (tool as any).id || tool.tool_id || tool.name)
         e.dataTransfer.effectAllowed = 'move'
     }, [])
 
@@ -204,7 +205,7 @@ export function NodePalette() {
         [q]
     )
     const filteredTools = useMemo(
-        () => tools.filter((t) => !q || t.name.toLowerCase().includes(q) || t.description.toLowerCase().includes(q)),
+        () => tools.filter((t) => !q || t.name.toLowerCase().includes(q) || (t.description || '').toLowerCase().includes(q)),
         [tools, q]
     )
     const filteredBlueprints = useMemo(
@@ -281,17 +282,17 @@ export function NodePalette() {
                     )}
                     {filteredTools.map((tool) => (
                         <div
-                            key={tool.tool_id}
-                            className="group flex cursor-grab items-center gap-2.5 rounded-lg border border-border/40 bg-background/60 p-2 transition-all hover:border-primary/40 hover:bg-accent hover:shadow-sm active:cursor-grabbing"
+                            key={(tool as any).id || tool.tool_id || tool.name}
+                            className="group flex cursor-grab items-center gap-2.5 rounded-lg border border-border/40 bg-background/60 p-2 transition-all hover:border-cyan-500/40 hover:bg-accent hover:shadow-sm active:cursor-grabbing"
                             draggable
                             onDragStart={(e) => onToolDragStart(e, tool)}
                         >
-                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted text-blue-500 transition-transform group-hover:scale-110">
+                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-cyan-500/10 text-cyan-500 transition-transform group-hover:scale-110">
                                 <Wrench className="h-3.5 w-3.5" />
                             </div>
                             <div className="min-w-0 flex-1">
-                                <p className="text-xs font-medium text-foreground leading-tight truncate">{tool.name}</p>
-                                <p className="text-[10px] text-muted-foreground leading-tight">{tool.capabilities.length} capabilities</p>
+                                <p className="text-xs font-medium text-foreground leading-tight truncate">{(tool as any).display_name || tool.name}</p>
+                                <p className="text-[10px] text-muted-foreground leading-tight truncate">{tool.description || (tool as any).tool_type}</p>
                             </div>
                             <HealthDot status={tool.health_status} />
                         </div>
@@ -356,3 +357,4 @@ export function NodePalette() {
         </motion.aside>
     )
 }
+

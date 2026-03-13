@@ -95,7 +95,8 @@ export function AnalyticsPage() {
         queryFn: () => fetch(`/api/v1/analytics/eval-trends?range=${range}`).then(r => r.json()),
     })
 
-    const costData = blueprintStats
+    const safeStats = Array.isArray(blueprintStats) ? blueprintStats : []
+    const costData = safeStats
         .slice(0, 10)
         .sort((a, b) => b.avg_cost - a.avg_cost)
         .map(b => ({ name: b.name.slice(0, 18), cost: b.avg_cost }))
@@ -217,7 +218,7 @@ export function AnalyticsPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border">
-                                {blueprintStats.map(b => (
+                                {safeStats.map(b => (
                                     <tr
                                         key={b.id}
                                         className="hover:bg-muted/30 cursor-pointer transition-colors"

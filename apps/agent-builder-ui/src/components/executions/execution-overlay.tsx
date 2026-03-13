@@ -6,9 +6,10 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { CheckCircle, XCircle, Clock, Zap, DollarSign, Loader2, SkipForward } from 'lucide-react'
+import { CheckCircle, XCircle, Clock, Zap, DollarSign, Loader2, SkipForward, TerminalSquare, ChevronRight } from 'lucide-react'
 import { useCanvasStore } from '@/stores/canvasStore'
 import { useExecutionStream } from '@/hooks/useExecutionStream'
+import { cn } from '@/lib/utils'
 
 // ─── Elapsed Timer ───────────────────────────────────────────────────────────
 
@@ -133,6 +134,65 @@ function StreamingChips() {
                     </p>
                 </motion.div>
             ))}
+        </div>
+    )
+}
+
+// ─── Live Logs Drawer ─────────────────────────────────────────────────────────
+
+function LiveLogsDrawer() {
+    const [isOpen, setIsOpen] = useState(false)
+    const logs = useCanvasStore((s) => s.executionLogs) || []
+    const bottomRef = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        if (isOpen && bottomRef.current) {
+            bottomRef.current.scrollIntoView({ behavior: 'smooth' })
+        }
+    }, [logs, isOpen])
+
+    return (
+        <div className={cn(
+            "absolute right-0 top-16 bottom-16 z-30 flex transition-all duration-300 ease-in-out",
+            isOpen ? "w-80" : "w-10"
+        )}>
+            {/* Toggle Tab */}
+            <div 
+                className="absolute -left-10 top-4 flex h-10 w-10 cursor-pointer items-center justify-center rounded-l-lg border border-r-0 border-border bg-card/95 shadow-md backdrop-blur-sm hover:bg-accent transition-colors"
+                onClick={() => setIsOpen(!isOpen)}
+            >
+                {isOpen ? <ChevronRight className="h-4 w-4 text-muted-foreground" /> : <TerminalSquare className="h-4 w-4 text-muted-foreground" />}
+            </div>
+
+            {/* Panel */}
+            <div className={cn(
+                "h-full w-full border-l border-border bg-card/95 shadow-2xl backdrop-blur-sm overflow-hidden flex flex-col transition-opacity duration-300",
+                isOpen ? "opacity-100" : "opacity-0"
+            )}>
+                <div className="flex h-10 shrink-0 items-center justify-between border-b border-border px-4 py-2 bg-muted/30">
+                    <span className="text-xs font-semibold text-foreground flex items-center gap-2">
+                        <TerminalSquare className="h-3.5 w-3.5" />
+                        Live Logs
+                    </span>
+                </div>
+                <div className="flex-1 overflow-y-auto p-4 font-mono text-[10px] leading-relaxed">
+                    {logs.length === 0 ? (
+                        <div className="h-full flex items-center justify-center text-muted-foreground">
+                            Waiting for logs...
+                        </div>
+                    ) : (
+                        logs.map((log: any, i: number) => (
+                            <div key={i} className="mb-1 text-muted-foreground whitespace-pre-wrap">
+                                <span className="text-blue-400">[{new Date(log.timestamp).toLocaleTimeString()}]</span>{' '}
+                                <span className={log.level === 'error' ? 'text-red-400' : log.level === 'warn' ? 'text-yellow-400' : 'text-foreground'}>
+                                    {log.message}
+                                </span>
+                            </div>
+                        ))
+                    )}
+                    <div ref={bottomRef} />
+                </div>
+            </div>
         </div>
     )
 }
@@ -268,6 +328,9 @@ export function ExecutionOverlay() {
 
             {/* Streaming Chips */}
             <StreamingChips />
+            
+            {/* Live Logs Drawer */}
+            <LiveLogsDrawer />
         </>
     )
 }

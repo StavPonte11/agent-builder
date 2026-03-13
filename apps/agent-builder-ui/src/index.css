@@ -19,52 +19,129 @@
    ============================================================ */
 @layer base {
   :root {
-    /* Backgrounds */
-    --background:    215 33% 5%;     /* #080C14 deep navy-black */
-    --surface:       220 30% 9%;     /* #0F1624 */
-    --card:          218 27% 14%;    /* #162032 */
-    --card-foreground: 214 32% 91%;  /* text on card */
-    --border:        218 24% 18%;    /* #1E2D42 */
-    --border-strong: 214 30% 26%;    /* #2A3F5A */
+    /* ── Light Mode Design Tokens ── */
 
-    /* Accent colors */
-    --accent-primary:             221 83% 53%;   /* #2563EB electric blue */
-    --accent-primary-foreground:  0 0% 100%;
-    --accent-success:             160 84% 39%;   /* #059669 emerald */
-    --accent-warning:             32 94% 44%;    /* #D97706 amber */
-    --accent-danger:              0 72% 51%;     /* #DC2626 red */
-    --accent-purple:              262 79% 55%;   /* #7C3AED violet */
-    --accent-cyan:                193 87% 37%;   /* #0891B2 cyan */
-    --accent-orange:              23 89% 50%;    /* #EA580C orange */
+    /* Core backgrounds — warm slate, not harsh white */
+    --background: 220 20% 96%;
+    /* #F1F3F8 warm gray-blue */
+    --surface: 218 25% 98%;
+    /* #F8F9FC near-white */
+    --card: 0 0% 100%;
+    /* #FFFFFF card surface */
+    --card-foreground: 220 40% 13%;
+    /* #111827 nearly black */
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 40% 13%;
 
-    /* Text */
-    --text-primary:   214 32% 91%;   /* #E2E8F0 */
-    --text-secondary: 215 20% 65%;   /* #94A3B8 */
-    --text-dim:       215 19% 35%;   /* #475569 */
+    /* Foreground text */
+    --foreground: 220 40% 13%;
+    /* #111827 primary text */
+    --muted: 220 14% 91%;
+    /* #E4E7EF subtle muted bg */
+    --muted-foreground: 220 13% 46%;
+    /* #616E8A secondary text */
 
-    /* Node type accent colors */
-    --node-llm:       262 79% 55%;   /* purple */
-    --node-tool:      193 87% 37%;   /* cyan */
-    --node-condition: 23 89% 50%;    /* orange */
-    --node-memory:    160 84% 39%;   /* green */
-    --node-approval:  0 72% 51%;     /* red */
-    --node-trigger:   221 83% 53%;   /* blue */
-    --node-output:    32 94% 44%;    /* amber */
+    /* Borders */
+    --border: 220 18% 84%;
+    /* #CBD3E5 light border */
+    --border-strong: 220 14% 64%;
+    /* #909CB8 medium border */
+    --input: 220 18% 84%;
+    --ring: 221 83% 53%;
+    /* #2563EB focus ring */
 
-    /* shadcn/ui compatibility */
+    /* Primary — vibrant blue */
+    --primary: 221 83% 53%;
+    /* #2563EB */
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary — soft slate */
+    --secondary: 220 14% 91%;
+    --secondary-foreground: 220 40% 13%;
+
+    /* Accent — hover / active state */
+    --accent: 220 14% 88%;
+    /* #DDE2F0 hover bg */
+    --accent-foreground: 221 83% 53%;
+    /* blue text on hover */
+
+    /* Destructive */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Accent palette */
+    --accent-primary: 221 83% 53%;
+    --accent-primary-foreground: 0 0% 100%;
+    --accent-success: 160 84% 39%;
+    --accent-warning: 32 94% 44%;
+    --accent-danger: 0 72% 51%;
+    --accent-purple: 262 79% 55%;
+    --accent-cyan: 193 87% 37%;
+    --accent-orange: 23 89% 50%;
+
+    /* Text aliases */
+    --text-primary: 220 40% 13%;
+    --text-secondary: 220 13% 46%;
+    --text-dim: 220 14% 75%;
+
+    /* Node type colors */
+    --node-llm: 262 79% 55%;
+    --node-tool: 193 87% 37%;
+    --node-condition: 23 89% 50%;
+    --node-memory: 160 84% 39%;
+    --node-approval: 0 72% 51%;
+    --node-trigger: 221 83% 53%;
+    --node-output: 32 94% 44%;
+
     --radius: 0.5rem;
-
-    /* Glow helper (overridden per component) */
-    --glow-color: hsl(var(--accent-primary) / 0.4);
+    --glow-color: hsl(var(--accent-primary) / 0.3);
   }
 
-  /* Force dark mode — no light mode variant */
+  .dark {
+    /* ── Dark Mode Design Tokens ── */
+    --background: 215 33% 5%;
+    /* #080C14 */
+    --surface: 220 30% 9%;
+    /* #0F1624 */
+    --card: 218 27% 14%;
+    /* #162032 */
+    --card-foreground: 214 32% 91%;
+    --popover: 218 27% 14%;
+    --popover-foreground: 214 32% 91%;
+
+    --foreground: 214 32% 91%;
+    --muted: 218 24% 18%;
+    --muted-foreground: 215 20% 60%;
+
+    --border: 218 24% 18%;
+    /* #1E2D42 */
+    --border-strong: 214 30% 26%;
+    /* #2A3F5A */
+    --input: 218 24% 18%;
+    --ring: 221 83% 53%;
+
+    --primary: 221 83% 58%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 218 24% 18%;
+    --secondary-foreground: 214 32% 91%;
+
+    --accent: 218 24% 22%;
+    --accent-foreground: 214 32% 91%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --text-primary: 214 32% 91%;
+    --text-secondary: 215 20% 65%;
+    --text-dim: 215 19% 35%;
+  }
+
   * {
     @apply border-border;
   }
 
   html {
-    color-scheme: dark;
     scrollbar-color: hsl(var(--border-strong)) hsl(var(--surface));
     scrollbar-width: thin;
   }
@@ -78,12 +155,20 @@
   }
 
   /* Headings use the grotesque font */
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-heading;
   }
 
   /* Code elements use mono */
-  code, pre, kbd, samp {
+  code,
+  pre,
+  kbd,
+  samp {
     @apply font-mono;
   }
 
@@ -97,13 +182,16 @@
     width: 6px;
     height: 6px;
   }
+
   ::-webkit-scrollbar-track {
     background: hsl(var(--surface));
   }
+
   ::-webkit-scrollbar-thumb {
     background: hsl(var(--border-strong));
     border-radius: 3px;
   }
+
   ::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--text-dim));
   }
@@ -152,8 +240,8 @@
     transform: scale(1.2);
   }
 
-  .react-flow__node.selected > div {
-    ring: 2px solid hsl(var(--accent-primary));
+  .react-flow__node.selected>div {
+    outline: 2px solid hsl(var(--accent-primary));
     box-shadow: 0 0 0 2px hsl(var(--accent-primary));
   }
 
@@ -185,6 +273,7 @@
    Utility classes
    ============================================================ */
 @layer utilities {
+
   /* Text gradient */
   .text-gradient-primary {
     background: linear-gradient(135deg, hsl(var(--accent-primary)), hsl(var(--accent-cyan)));

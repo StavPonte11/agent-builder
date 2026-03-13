@@ -10,11 +10,9 @@ from datetime import timedelta
 from temporalio import workflow, activity
 from temporalio.common import RetryPolicy
 
-# Import our custom execution packages (will be installed inside the backend runtime)
-from workflow_engine import BlueprintCompiler
-from guardrails import GuardrailPipeline
-from evaluator import BlueprintEvaluator
-from mcp_registry import MCPRegistry
+# NOTE: workflow_engine, guardrails, evaluator, mcp_registry are internal
+# packages that are loaded lazily at activity execution time to avoid
+# blocking FastAPI server startup when they aren't installed yet.
 
 
 # ---------------------------------------------------------------------------
@@ -24,6 +22,7 @@ from mcp_registry import MCPRegistry
 @activity.defn
 async def compile_blueprint_activity(definition: dict) -> bool:
     """Compiles a blueprint to verify valid structure."""
+    from workflow_engine import BlueprintCompiler  # noqa: PLC0415
     compiler = BlueprintCompiler()
     try:
         compiler.compile(definition)
@@ -34,12 +33,14 @@ async def compile_blueprint_activity(definition: dict) -> bool:
 @activity.defn
 async def check_guardrails_activity(prompt: str) -> bool:
     """Runs input against the guardrail pipeline."""
+    from guardrails import GuardrailPipeline  # noqa: PLC0415
     pipeline = GuardrailPipeline()
     return not pipeline.check_pii(prompt)
 
 @activity.defn
 async def execute_langgraph_activity(definition: dict, input_data: dict) -> dict:
     """Compiles and executes the LangGraph workflow engine."""
+    from workflow_engine import BlueprintCompiler  # noqa: PLC0415
     compiler = BlueprintCompiler()
     graph = compiler.compile(definition)
     

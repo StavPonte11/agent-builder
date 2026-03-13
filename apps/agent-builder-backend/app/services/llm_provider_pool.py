@@ -40,10 +40,11 @@ class LLMProviderPool:
     Reads multiple API keys per provider from environment variables.
     """
 
-    def __init__(self):
+    def __init__(self, override_keys: Optional[Dict[str, str]] = None):
         self._openai_keys = self._collect_keys("OPENAI_API_KEY")
         self._anthropic_keys = self._collect_keys("ANTHROPIC_API_KEY")
         self._google_keys = self._collect_keys("GOOGLE_API_KEY")
+        self._override_keys = override_keys or {}
 
     def _collect_keys(self, base_var: str) -> List[str]:
         """Collects KEY, KEY_2, KEY_3, ... from environment."""
@@ -60,6 +61,16 @@ class LLMProviderPool:
             i += 1
         return keys
 
+    def _best_available_model(self) -> tuple[str, str]:
+        """Return the best (model, provider) tuple based on available keys."""
+        if self._google_keys:
+            return "gemini-2.0-flash", "google"
+        if self._anthropic_keys:
+            return "claude-3-5-haiku-20241022", "anthropic"
+        if self._openai_keys:
+            return "gpt-4o-mini", "openai"
+        raise RuntimeError("No LLM API keys configured. Set GOOGLE_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY.")
+
     def call(
         self,
         model: str,
@@ -69,21 +80,56 @@ class LLMProviderPool:
         temperature: float = 0.7,
         output_schema: Optional[str] = None,
         stream: bool = False,
+        override_keys: Optional[Dict[str, str]] = None,
     ) -> str:
         """
         Call the LLM with automatic failover across providers/keys.
+        If the requested model's provider has no key, falls back to the best available provider.
+        If override_keys (like Org BYOK) are provided, they take priority.
         Returns the text response.
         """
         provider = _detect_provider(model)
 
+        # Build priority key lists
+        openai_keys = []
+        anthropic_keys = []
+        google_keys = []
+        
+        if override_keys is None:
+            override_keys = self._override_keys
+            
+        if override_keys:
+            if override_keys.get("OPENAI_API_KEY"): openai_keys.append(override_keys["OPENAI_API_KEY"])
+            if override_keys.get("ANTHROPIC_API_KEY"): anthropic_keys.append(override_keys["ANTHROPIC_API_KEY"])
+            if override_keys.get("GOOGLE_API_KEY"): google_keys.append(override_keys["GOOGLE_API_KEY"])
+            
+        openai_keys.extend(self._openai_keys)
+        anthropic_keys.extend(self._anthropic_keys)
+        google_keys.extend(self._google_keys)
+
+        # Auto-fallback: if the ideal provider has no keys, use what's available
+        if provider == "openai" and not openai_keys:
+            fallback_model, provider = self._best_available_model()
+            if provider == "google":
+                model = fallback_model
+            elif provider == "anthropic":
+                model = fallback_model
+        elif provider == "anthropic" and not anthropic_keys:
+            fallback_model, provider = self._best_available_model()
+            model = fallback_model
+        elif provider == "google" and not google_keys:
+            fallback_model, provider = self._best_available_model()
+            model = fallback_model
+
         if provider == "openai":
-            return self._call_openai(model, system, user, max_tokens, temperature, output_schema, self._openai_keys)
+            return self._call_openai(model, system, user, max_tokens, temperature, output_schema, openai_keys)
         elif provider == "anthropic":
-            return self._call_anthropic(model, system, user, max_tokens, temperature, output_schema, self._anthropic_keys)
+            return self._call_anthropic(model, system, user, max_tokens, temperature, output_schema, anthropic_keys)
         elif provider == "google":
-            return self._call_google(model, system, user, max_tokens, temperature, self._google_keys)
+            return self._call_google(model, system, user, max_tokens, temperature, google_keys)
         else:
             raise ValueError(f"Unknown provider for model: {model}")
+
 
     def _call_openai(self, model, system, user, max_tokens, temperature, output_schema, keys) -> str:
         last_err = None
