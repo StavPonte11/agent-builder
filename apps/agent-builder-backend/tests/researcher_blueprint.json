@@ -1,0 +1,92 @@
+{
+    "_comment": "researcher_blueprint.json \u2014 Agent Node Test Workflow",
+    "_description": "Demonstrates the LLMSuperNode interacting natively with tools and retaining memory.",
+    "name": "The Researcher",
+    "description": "An agent that searches for a topic using bound tools and answers questions while preserving conversational history.",
+    "schema_version": "2.0",
+    "blueprint_type": "agent",
+    "domain": "research",
+    "tags": [
+        "demo",
+        "agent",
+        "tools",
+        "memory"
+    ],
+    "definition": {
+        "nodes": [
+            {
+                "id": "trigger",
+                "type": "trigger",
+                "label": "Research Trigger",
+                "position": {
+                    "x": 100,
+                    "y": 300
+                },
+                "data": {
+                    "trigger_type": "manual",
+                    "description": "Fires with a research topic.",
+                    "input_schema": {
+                        "topic": {
+                            "type": "string",
+                            "description": "The topic to research"
+                        }
+                    },
+                    "output_mapping": {
+                        "topic": "{{ trigger.topic }}"
+                    }
+                }
+            },
+            {
+                "id": "researcher_agent",
+                "type": "llm",
+                "label": "Researcher Agent",
+                "position": {
+                    "x": 400,
+                    "y": 300
+                },
+                "data": {
+                    "provider": "openai",
+                    "model": "gpt-4o",
+                    "temperature": 0.2,
+                    "max_tokens": 1024,
+                    "system_prompt": "You are an expert researcher. Use available tools to discover information about the user's topic. Provide a comprehensive summary.",
+                    "user_prompt_template": "Topic: {{ state.topic }}",
+                    "output_format": "text",
+                    "tools": ["web_search", "weather_lookup"],
+                    "enable_memory": true,
+                    "retry_policy": {
+                        "max_attempts": 2,
+                        "backoff": "linear"
+                    },
+                    "timeout": 60
+                }
+            },
+            {
+                "id": "output",
+                "type": "output",
+                "label": "Final Output",
+                "position": {
+                    "x": 700,
+                    "y": 300
+                },
+                "data": {
+                    "output_mapping": {
+                        "summary": "{{ state.researcher_agent_result }}"
+                    }
+                }
+            }
+        ],
+        "edges": [
+            {
+                "id": "e1",
+                "source": "trigger",
+                "target": "researcher_agent"
+            },
+            {
+                "id": "e2",
+                "source": "researcher_agent",
+                "target": "output"
+            }
+        ]
+    }
+}

@@ -142,7 +142,7 @@ function StreamingChips() {
 
 function LiveLogsDrawer() {
     const [isOpen, setIsOpen] = useState(false)
-    const logs = useCanvasStore((s) => s.executionLogs) || []
+    const logs = useCanvasStore((s) => (s as any).executionLogs) || []
     const bottomRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {

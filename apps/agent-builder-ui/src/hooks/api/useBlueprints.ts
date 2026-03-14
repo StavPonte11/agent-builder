@@ -21,7 +21,7 @@ export function useBlueprints(statusFilter?: string) {
 export function useBlueprint(id: string | undefined) {
     return useQuery({
         queryKey: [BLUEPRINTS_KEY, id],
-        enabled: !!id,
+        enabled: !!id && id !== 'new',
         queryFn: async () => {
             const { data, error } = await (apiClient as any).GET('/api/v1/blueprints/{blueprint_id}', {
                 params: { path: { blueprint_id: id } },

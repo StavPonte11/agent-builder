@@ -284,6 +284,10 @@ const MODELS_BY_PROVIDER: Record<string, { value: string; label: string; context
         { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash', context: '1M ctx' },
         { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro', context: '2M ctx' },
     ],
+    local: [
+        { value: 'ollama', label: 'Local (Ollama)', context: '32k ctx' },
+        { value: 'vllm', label: 'Local (vLLM)', context: '32k ctx' },
+    ],
 }
 
 function LLMFields({ node, updateNodeData }: { node: any; updateNodeData: (id: string, data: Record<string, unknown>) => void }) {
@@ -333,6 +337,7 @@ function LLMFields({ node, updateNodeData }: { node: any; updateNodeData: (id: s
                     <option value="openai">OpenAI</option>
                     <option value="anthropic">Anthropic</option>
                     <option value="google">Google</option>
+                    <option value="local">Local Fallback</option>
                     <option value="custom">Custom Endpoint</option>
                 </Select>
             </Field>
@@ -375,6 +380,14 @@ function LLMFields({ node, updateNodeData }: { node: any; updateNodeData: (id: s
             </Field>
 
             <Toggle checked={d.streaming ?? false} onChange={(v) => up({ streaming: v })} label="Streaming" />
+
+            <Toggle checked={d.enable_memory as boolean ?? false} onChange={(v) => up({ enable_memory: v })} label="Enable Persistence (Memory)" />
+
+            <Field label="Tools (MCP)" hint="Connect external tools visually">
+                <div className="rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground text-center">
+                    <p>To bind tools to this model, drag a <strong>Tool</strong> node onto the canvas and connect its output to the <strong className="text-foreground">Tools handle</strong> at the bottom of this node.</p>
+                </div>
+            </Field>
 
             <div className="flex gap-2">
                 <button
@@ -450,7 +463,7 @@ function ToolFields({ node, updateNodeData }: { node: any; updateNodeData: (id: 
                 <Field label="Capability">
                     <Select value={d.capability ?? ''} onChange={(v) => up({ capability: v })}>
                         <option value="">— Select capability —</option>
-                        {selectedTool.capabilities.map((c) => (
+                        {(selectedTool.capabilities || []).map((c) => (
                             <option key={c.name} value={c.name}>{c.name} — {c.description}</option>
                         ))}
                     </Select>

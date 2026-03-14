@@ -75,8 +75,8 @@ class BlueprintDuplicateRequest(BaseModel):
 
 class BlueprintValidateResponse(BaseModel):
     valid: bool
-    errors: list[str] = Field(default_factory=list)
-    warnings: list[str] = Field(default_factory=list)
+    errors: list[dict] = Field(default_factory=list)
+    warnings: list[dict] = Field(default_factory=list)
 
 
 class BlueprintCostEstimate(BaseModel):

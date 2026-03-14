@@ -81,12 +81,15 @@ class LLMProviderPool:
         output_schema: Optional[str] = None,
         stream: bool = False,
         override_keys: Optional[Dict[str, str]] = None,
-    ) -> str:
+        tools: Optional[List[Any]] = None,
+        return_model_instance: bool = False,
+    ) -> Any:
         """
         Call the LLM with automatic failover across providers/keys.
         If the requested model's provider has no key, falls back to the best available provider.
-        If override_keys (like Org BYOK) are provided, they take priority.
-        Returns the text response.
+        If override_keys are provided, they take priority.
+        If return_model_instance is True, it returns the LangChain model directly (with tools bound if provided).
+        Otherwise returns the text response.
         """
         provider = _detect_provider(model)
 
@@ -122,75 +125,82 @@ class LLMProviderPool:
             model = fallback_model
 
         if provider == "openai":
-            return self._call_openai(model, system, user, max_tokens, temperature, output_schema, openai_keys)
+            return self._call_openai(model, system, user, max_tokens, temperature, output_schema, openai_keys, tools, return_model_instance)
         elif provider == "anthropic":
-            return self._call_anthropic(model, system, user, max_tokens, temperature, output_schema, anthropic_keys)
+            return self._call_anthropic(model, system, user, max_tokens, temperature, output_schema, anthropic_keys, tools, return_model_instance)
         elif provider == "google":
-            return self._call_google(model, system, user, max_tokens, temperature, google_keys)
+            return self._call_google(model, system, user, max_tokens, temperature, google_keys, tools, return_model_instance)
         else:
             raise ValueError(f"Unknown provider for model: {model}")
 
-
-    def _call_openai(self, model, system, user, max_tokens, temperature, output_schema, keys) -> str:
+    def _call_openai(self, model, system, user, max_tokens, temperature, output_schema, keys, tools=None, return_model_instance=False) -> Any:
         last_err = None
         for api_key in keys:
             try:
-                import openai
-                client = openai.OpenAI(api_key=api_key)
+                from langchain_openai import ChatOpenAI
+                from langchain_core.messages import SystemMessage, HumanMessage
+                
+                chat_model = ChatOpenAI(model=model, max_tokens=max_tokens, temperature=temperature, api_key=api_key)
+                
+                if tools:
+                    chat_model = chat_model.bind_tools(tools)
+                    
+                if return_model_instance:
+                    return chat_model
+                    
                 messages = []
                 if system:
-                    messages.append({"role": "system", "content": system})
-                messages.append({"role": "user", "content": user})
+                    messages.append(SystemMessage(content=system))
+                messages.append(HumanMessage(content=user))
 
                 if output_schema:
-                    # Structured output
                     try:
+                        import json
                         schema = json.loads(output_schema)
-                        resp = client.chat.completions.create(
-                            model=model,
-                            messages=messages,
-                            max_tokens=max_tokens,
-                            temperature=temperature,
-                            response_format={"type": "json_object"},
-                        )
-                    except (json.JSONDecodeError, Exception):
-                        resp = client.chat.completions.create(
-                            model=model, messages=messages,
-                            max_tokens=max_tokens, temperature=temperature,
-                        )
-                else:
-                    resp = client.chat.completions.create(
-                        model=model, messages=messages,
-                        max_tokens=max_tokens, temperature=temperature,
-                    )
-                return resp.choices[0].message.content or ""
+                        chat_model = chat_model.with_structured_output(schema)
+                    except Exception:
+                        pass
+                
+                resp = chat_model.invoke(messages)
+                return resp.content if hasattr(resp, 'content') else str(resp)
             except Exception as e:
                 last_err = e
                 err_name = type(e).__name__
                 if "RateLimit" in err_name or "Quota" in err_name:
-                    continue  # Try next key
+                    continue
                 raise e
         raise last_err or RuntimeError("No OpenAI keys available")
 
-    def _call_anthropic(self, model, system, user, max_tokens, temperature, output_schema, keys) -> str:
+    def _call_anthropic(self, model, system, user, max_tokens, temperature, output_schema, keys, tools=None, return_model_instance=False) -> Any:
         last_err = None
         for api_key in keys:
             try:
-                import anthropic
-                client = anthropic.Anthropic(api_key=api_key)
-
-                kwargs: Dict[str, Any] = {
-                    "model": model,
-                    "max_tokens": max_tokens,
-                    "messages": [{"role": "user", "content": user}],
-                }
+                from langchain_anthropic import ChatAnthropic
+                from langchain_core.messages import SystemMessage, HumanMessage
+                
+                chat_model = ChatAnthropic(model=model, max_tokens=max_tokens, temperature=temperature, api_key=api_key)
+                
+                if tools:
+                    chat_model = chat_model.bind_tools(tools)
+                    
+                if return_model_instance:
+                    return chat_model
+                    
+                messages = []
                 if system:
-                    kwargs["system"] = system
-                if temperature is not None:
-                    kwargs["temperature"] = temperature
+                    messages.append(SystemMessage(content=system))
+                messages.append(HumanMessage(content=user))
 
-                resp = client.messages.create(**kwargs)
-                return resp.content[0].text if resp.content else ""
+                if output_schema:
+                    try:
+                        import json
+                        schema = json.loads(output_schema)
+                        chat_model = chat_model.with_structured_output(schema)
+                    except Exception:
+                        pass
+                        
+                resp = chat_model.invoke(messages)
+                return resp.content if hasattr(resp, 'content') else str(resp)
             except Exception as e:
                 last_err = e
                 err_str = str(e).lower()
@@ -199,24 +209,36 @@ class LLMProviderPool:
                 raise e
         raise last_err or RuntimeError("No Anthropic keys available")
 
-    def _call_google(self, model, system, user, max_tokens, temperature, keys) -> str:
+    def _call_google(self, model, system, user, max_tokens, temperature, keys, tools=None, return_model_instance=False) -> Any:
         last_err = None
         for api_key in keys:
             try:
-                import google.generativeai as genai
-                genai.configure(api_key=api_key)
-                gmodel = genai.GenerativeModel(
-                    model_name=model,
-                    system_instruction=system or None,
-                )
-                resp = gmodel.generate_content(
-                    user,
-                    generation_config=genai.types.GenerationConfig(
-                        max_output_tokens=max_tokens,
-                        temperature=temperature,
-                    )
-                )
-                return resp.text or ""
+                from langchain_google_genai import ChatGoogleGenerativeAI
+                from langchain_core.messages import SystemMessage, HumanMessage
+                
+                chat_model = ChatGoogleGenerativeAI(model=model, max_tokens=max_tokens, temperature=temperature, google_api_key=api_key)
+                
+                if tools:
+                    chat_model = chat_model.bind_tools(tools)
+                    
+                if return_model_instance:
+                    return chat_model
+                    
+                messages = []
+                if system:
+                    messages.append(SystemMessage(content=system))
+                messages.append(HumanMessage(content=user))
+                
+                if output_schema:
+                    try:
+                        import json
+                        schema = json.loads(output_schema)
+                        chat_model = chat_model.with_structured_output(schema)
+                    except Exception:
+                        pass
+
+                resp = chat_model.invoke(messages)
+                return resp.content if hasattr(resp, 'content') else str(resp)
             except Exception as e:
                 last_err = e
                 continue
@@ -225,3 +247,4 @@ class LLMProviderPool:
     def compute_cost(self, model: str, prompt_tokens: int, completion_tokens: int) -> float:
         costs = PRICING_TABLE.get(model, {"input": 0.002, "output": 0.008})
         return (prompt_tokens / 1000) * costs["input"] + (completion_tokens / 1000) * costs["output"]
+

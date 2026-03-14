@@ -12,6 +12,9 @@ import { useCanvasStore } from '@/stores/canvasStore'
 import { serializeBlueprint } from '@/lib/blueprint-serializer'
 import type { ValidationResult, CostEstimate } from '@/types/blueprint'
 import { JsonViewModal } from './json-view-modal'
+import ELK from 'elkjs/lib/elk.bundled.js'
+
+const elk = new ELK()
 
 const STATUS_COLORS: Record<string, string> = {
     draft: 'bg-slate-500/15 text-slate-500 border-slate-500/20',
@@ -141,6 +144,41 @@ export function BuilderToolbar() {
             setShowCostPopover(true)
         } finally {
             setEstimating(false)
+        }
+    }
+
+    const [layouting, setLayouting] = useState(false)
+    const handleMagicLayout = async () => {
+        setLayouting(true)
+        try {
+            const currentNodes = useCanvasStore.getState().nodes
+            const currentEdges = useCanvasStore.getState().edges
+            
+            const graph = {
+                id: 'root',
+                layoutOptions: { 
+                    'elk.algorithm': 'layered', 
+                    'elk.direction': 'RIGHT',
+                    'elk.spacing.nodeNode': '60',
+                    'elk.layered.spacing.nodeNodeBetweenLayers': '80'
+                },
+                children: currentNodes.map(n => ({ id: n.id, width: 280, height: 120 })),
+                edges: currentEdges.map(e => ({ id: e.id, sources: [e.source], targets: [e.target] }))
+            }
+            
+            const layoutedGraph = await elk.layout(graph)
+            
+            const newNodes = currentNodes.map(n => {
+                const layoutedNode = layoutedGraph.children?.find(c => c.id === n.id)
+                if (layoutedNode && layoutedNode.x !== undefined && layoutedNode.y !== undefined) {
+                    return { ...n, position: { x: layoutedNode.x, y: layoutedNode.y } }
+                }
+                return n
+            })
+            
+            useCanvasStore.getState().setNodes(newNodes)
+        } finally {
+            setLayouting(false)
         }
     }
 
@@ -274,7 +312,27 @@ export function BuilderToolbar() {
                     </div>
 
                     <button
-                        onClick={() => { }}
+                        onClick={handleMagicLayout}
+                        disabled={layouting || nodes.length === 0}
+                        className="flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-foreground transition hover:bg-accent disabled:opacity-50"
+                    >
+                        {layouting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LayoutGrid className="h-3.5 w-3.5 text-blue-500" />}
+                        Magic Layout
+                    </button>
+
+                    <button
+                        onClick={() => {
+                            useCanvasStore.getState().selectNode(null)
+                            if (!id) return
+                            const runId = crypto.randomUUID()
+                            useCanvasStore.getState().startExecution(runId, nodes.length)
+                            fetch(`/api/v1/blueprints/${id}/sandbox`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ run_id: runId, input_data: {} })
+                            }).catch(console.error)
+                            setCanvasMode('execute')
+                        }}
                         className="flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-foreground transition hover:bg-accent"
                     >
                         <Play className="h-3.5 w-3.5 text-green-500" />

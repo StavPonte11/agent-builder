@@ -141,40 +141,15 @@ class BlueprintService(BaseService):
     async def validate(self, blueprint_id: uuid.UUID) -> BlueprintValidateResponse:
         self._require_builder_or_admin()
         blueprint = await self._get_by_id(Blueprint, blueprint_id)
-        errors: list[str] = []
-        warnings: list[str] = []
-
-        definition = blueprint.definition or {}
-        nodes: list[dict] = definition.get("nodes", [])
-        edges: list[dict] = definition.get("edges", [])
-
-        if not nodes:
-            errors.append("Blueprint has no nodes.")
-
-        # Must have at least one Trigger node
-        trigger_nodes = [n for n in nodes if n.get("type") == "trigger"]
-        if not trigger_nodes:
-            errors.append("Blueprint must have at least one Trigger node.")
-
-        # Must have at least one Output node
-        output_nodes = [n for n in nodes if n.get("type") == "output"]
-        if not output_nodes:
-            warnings.append("Blueprint has no Output node — results may be implicit.")
-
-        # Disconnected nodes (no edges touching them)
-        node_ids = {n["id"] for n in nodes}
-        connected_ids: set[str] = set()
-        for edge in edges:
-            connected_ids.add(edge.get("source", ""))
-            connected_ids.add(edge.get("target", ""))
-        disconnected = node_ids - connected_ids - {n["id"] for n in trigger_nodes}
-        if disconnected:
-            warnings.append(f"Disconnected nodes: {', '.join(disconnected)}")
-
+        
+        from workflow_engine.compiler import BlueprintCompiler
+        compiler = BlueprintCompiler()
+        result = compiler.validate(blueprint.definition or {})
+        
         return BlueprintValidateResponse(
-            valid=len(errors) == 0,
-            errors=errors,
-            warnings=warnings,
+            valid=result["valid"],
+            errors=result["errors"],
+            warnings=result["warnings"],
         )
 
     # -----------------------------------------------------------------------

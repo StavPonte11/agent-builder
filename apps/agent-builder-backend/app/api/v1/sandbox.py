@@ -30,6 +30,7 @@ router = APIRouter(prefix="/blueprints", tags=["Sandbox"])
 # ── Schemas ───────────────────────────────────────────────────────────────────────
 
 class SandboxRunRequest(BaseModel):
+    run_id: Optional[str] = None
     input_data: dict = {}
     override_prompts: dict[str, str] = {}  # node_id → new system_prompt (in-memory only)
     eval_immediately: bool = True
@@ -117,7 +118,7 @@ async def run_sandbox(
         
     compiler = BlueprintCompiler(llm_pool=pool)
 
-    run_id = str(uuid.uuid4())
+    run_id = body.run_id or str(uuid.uuid4())
     started_at = datetime.now(timezone.utc)
     t0 = time.monotonic()
 

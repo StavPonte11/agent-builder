@@ -4,8 +4,8 @@
  *
  * Requirement 6: n8n-style Canvas UX with rich visual affordances.
  */
-import { useState, useEffect, useCallback } from 'react'
-import { NodeProps, Handle, Position } from 'reactflow'
+import React, { memo, useState, useEffect, useCallback } from 'react'
+import { NodeProps, Handle, Position } from '@xyflow/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Keyboard, X, StickyNote, PenLine } from 'lucide-react'
 
@@ -163,10 +163,10 @@ const STICKY_COLORS = {
  * Double-click to edit text inline.
  * Color can be changed via right-click context menu (handled in BuilderPage).
  */
-export function StickyNoteNode({ data, selected }: NodeProps<StickyNoteData>) {
+export function StickyNoteNode({ data, selected }: NodeProps<any>) {
     const [editing, setEditing] = useState(false)
     const [text, setText] = useState(data.text || 'Click to add a note…')
-    const color = data.color ?? 'yellow'
+    const color = (data.color as keyof typeof STICKY_COLORS) ?? 'yellow'
 
     return (
         <div

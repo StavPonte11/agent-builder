@@ -204,7 +204,7 @@ export function useExecutionStream(
 
         const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
         const wsHost = window.location.host
-        const wsUrl = `${wsProtocol}//${wsHost}/api/v1/ws/executions/${executionId}`
+        const wsUrl = `${wsProtocol}//${wsHost}/api/v1/ws/executions/${executionId}/stream`
 
         const ws = new WebSocket(wsUrl)
         wsRef.current = ws

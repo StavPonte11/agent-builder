@@ -112,15 +112,22 @@ async def generate_blueprint(body: GenerateRequest, current_user: CurrentUser, d
             "Respond with ONLY valid JSON, no markdown."
         )
 
-    result = pool.call(
-        model="gpt-4o",
-        system=system,
-        user=body.prompt,
-        max_tokens=4096,
-        temperature=0.2,
-    )
+        pool = LLMProviderPool()
 
-    # Clean and parse JSON
+        try:
+            result = pool.call(
+                model="gpt-4o-mini",
+                system=system,
+                user=body.prompt,
+                max_tokens=4096,
+                temperature=0.2,
+            )
+        except RuntimeError as e:
+            if "No LLM API keys configured" in str(e):
+                return {"nodes": [], "edges": [], "error": "No LLM API keys configured in the backend. Please add API keys to the environment."}
+            raise e
+
+        # Clean and parse JSON
     result = result.strip()
     if result.startswith("```"):
         result = "\n".join(result.split("\n")[1:-1])

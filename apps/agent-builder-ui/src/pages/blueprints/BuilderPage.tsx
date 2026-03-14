@@ -18,6 +18,7 @@ import {
     type EdgeChange,
     type NodeChange,
     type Node,
+    ConnectionMode,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 
@@ -353,6 +354,7 @@ function BuilderCanvas() {
                     onPaneClick={onPaneClick}
                     nodeTypes={nodeTypes}
                     edgeTypes={edgeTypes}
+                    connectionMode={ConnectionMode.Loose}
                     fitView
                     deleteKeyCode={['Delete', 'Backspace']} // Delete selected nodes with keyboard
                     className="bg-background/90"
