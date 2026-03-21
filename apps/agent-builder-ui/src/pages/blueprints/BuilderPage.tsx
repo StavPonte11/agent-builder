@@ -52,6 +52,10 @@ import { Loader2 } from 'lucide-react'
 import { ExecutionOverlay } from '@/components/executions/execution-overlay'
 import { ReviewModeTimeline } from '@/components/executions/review-mode-timeline'
 
+// ── Mission Commander overlays (HITL + Time-Travel) ──────────────────────────
+import { OversightDialog } from '@/components/builder/panels/oversight-dialog'
+import { StateHistoryPanel } from '@/components/builder/panels/state-history-panel'
+
 const edgeTypes = {
     condition: ConditionEdge,
     default: DefaultEdge,
@@ -157,6 +161,8 @@ function BuilderCanvas() {
     const canUndo = useCanvasStore((s) => s.past.length > 0)
     const canRedo = useCanvasStore((s) => s.future.length > 0)
     const canvasMode = useCanvasStore((s) => s.canvasMode)
+    const pendingApproval = useCanvasStore((s) => s.pendingApproval)
+    const activeExecutionId = useCanvasStore((s) => s.activeExecutionId)
 
     // ── Keyboard shortcuts ─────────────────────────────────────────────────────
     useEffect(() => {
@@ -373,6 +379,13 @@ function BuilderCanvas() {
                 {canvasMode !== 'execute' && <NodeConfigPanel />}
                 {canvasMode === 'execute' && <ExecutionOverlay />}
 
+                {/* Time-Travel Sidebar — Review Mode */}
+                {canvasMode === 'review' && (
+                    <div className="absolute top-0 right-0 h-full w-72 border-l border-border bg-card/95 backdrop-blur-sm z-30 overflow-hidden flex flex-col">
+                        <StateHistoryPanel />
+                    </div>
+                )}
+
                 {/* Context Menu */}
                 {contextMenu && (
                     <CanvasContextMenu menu={contextMenu} onClose={() => setContextMenu(null)} />
@@ -418,6 +431,11 @@ function BuilderCanvas() {
 
             {/* Review Mode Timeline (footer) */}
             {canvasMode === 'review' && <ReviewModeTimeline />}
+
+            {/* HITL OversightDialog — floats above everything when approval is pending */}
+            {pendingApproval && activeExecutionId && (
+                <OversightDialog executionId={activeExecutionId} />
+            )}
         </div>
     )
 }

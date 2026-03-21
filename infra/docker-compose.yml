@@ -1,5 +1,5 @@
 volumes:
-  postgres_data:
+  postgres_data_builder:
   redis_data:
   temporal_data:
 
@@ -17,7 +17,7 @@ services:
     restart: unless-stopped
     networks: [agent_net]
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data_builder:/var/lib/postgresql/data_builder
       - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-agent_builder}
@@ -159,7 +159,7 @@ services:
       JWT_PUBLIC_KEY_PATH: /keys/public.pem
       ALLOWED_ORIGINS: "http://localhost:5173,http://localhost:3000"
     env_file:
-      - ../.env
+      - ../apps/agent-builder-backend/.env
     ports:
       - "8000:8000"
     healthcheck:
@@ -202,7 +202,7 @@ services:
       JWT_PRIVATE_KEY_PATH: /keys/private.pem
       JWT_PUBLIC_KEY_PATH: /keys/public.pem
     env_file:
-      - ../.env
+      - ../apps/agent-builder-backend/.env
 
   # ---------------------------------------------------------------------------
   # Celery Worker
@@ -231,7 +231,7 @@ services:
       CELERY_BROKER_URL: redis://redis:6379/1
       CELERY_RESULT_BACKEND: redis://redis:6379/2
     env_file:
-      - ../.env
+      - ../apps/agent-builder-backend/.env
 
   # ---------------------------------------------------------------------------
   # Flower (Celery monitoring)

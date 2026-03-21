@@ -112,25 +112,71 @@ export function BaseNode({
                 </div>
             )}
 
-            {/* Execution overlay */}
-            {canvasMode !== 'build' && nodeExecData && (
-                <div className={cn(
-                    'px-3 py-1.5 text-[10px] font-medium border-t border-border',
-                    nodeStatus === 'completed' ? 'text-green-600 dark:text-green-400 bg-green-500/5'
-                        : nodeStatus === 'failed' ? 'text-red-600 dark:text-red-400 bg-red-500/5'
-                            : nodeStatus === 'running' ? 'text-blue-600 dark:text-blue-400 bg-blue-500/5'
-                                : 'text-muted-foreground'
-                )}>
-                    {nodeStatus === 'running' ? '⚡ Running…'
-                        : nodeStatus === 'completed' ? '✓ Completed'
-                            : nodeStatus === 'failed' ? `✗ ${nodeExecData.errorMessage ?? 'Error'}`
-                                : nodeStatus === 'retrying' ? `↻ Retry ${nodeExecData.attempt}/${nodeExecData.maxAttempts}`
-                                    : null}
-                    {nodeExecData.durationMs !== undefined && nodeStatus === 'completed' && (
-                        <span className="ml-1 opacity-60">{nodeExecData.durationMs}ms</span>
-                    )}
-                </div>
-            )}
+            {/* Execution overlay — status + observability metrics */}
+            {canvasMode !== 'build' && nodeExecData && (() => {
+                // Compute estimated cost from token usage (rough GPT-4o rates)
+                const tokens = nodeExecData.tokenUsage
+                const estimatedCost = tokens
+                    ? (tokens.prompt * 0.000005 + tokens.completion * 0.000015)
+                    : undefined
+
+                const costClass = estimatedCost === undefined ? ''
+                    : estimatedCost >= 0.05 ? 'text-red-400'
+                    : estimatedCost >= 0.01 ? 'text-amber-400'
+                    : 'text-emerald-400'
+
+                const durationDisplay = nodeExecData.durationMs !== undefined
+                    ? nodeExecData.durationMs < 1000
+                        ? `${Math.round(nodeExecData.durationMs)}ms`
+                        : `${(nodeExecData.durationMs / 1000).toFixed(1)}s`
+                    : null
+
+                return (
+                    <div className={cn(
+                        'border-t border-border',
+                        nodeStatus === 'completed' ? 'bg-green-500/5'
+                            : nodeStatus === 'failed' ? 'bg-red-500/5'
+                                : nodeStatus === 'running' ? 'bg-blue-500/5'
+                                    : 'bg-transparent'
+                    )}>
+                        {/* Status row */}
+                        <div className={cn(
+                            'px-3 py-1 text-[10px] font-medium',
+                            nodeStatus === 'completed' ? 'text-green-600 dark:text-green-400'
+                                : nodeStatus === 'failed' ? 'text-red-600 dark:text-red-400'
+                                    : nodeStatus === 'running' ? 'text-blue-600 dark:text-blue-400'
+                                        : 'text-muted-foreground'
+                        )}>
+                            {nodeStatus === 'running' ? '⚡ Running…'
+                                : nodeStatus === 'completed' ? '✓ Completed'
+                                    : nodeStatus === 'failed' ? `✗ ${nodeExecData.errorMessage ?? 'Error'}`
+                                        : nodeStatus === 'retrying' ? `↻ Retry ${nodeExecData.attempt}/${nodeExecData.maxAttempts}`
+                                            : null}
+                        </div>
+
+                        {/* Observability metric row — latency + cost + tokens */}
+                        {(durationDisplay || estimatedCost !== undefined || tokens) && (
+                            <div className="px-3 pb-1.5 flex items-center gap-3 text-[10px] font-mono">
+                                {durationDisplay && (
+                                    <span className="text-muted-foreground" title="Execution duration">
+                                        ⏱ {durationDisplay}
+                                    </span>
+                                )}
+                                {estimatedCost !== undefined && (
+                                    <span className={costClass} title="Estimated cost (input + output tokens)">
+                                        💰 ${estimatedCost < 0.0001 ? '<0.0001' : estimatedCost.toFixed(4)}
+                                    </span>
+                                )}
+                                {tokens && (
+                                    <span className="text-muted-foreground/70" title={`${tokens.prompt} prompt + ${tokens.completion} completion`}>
+                                        🔤 {tokens.total.toLocaleString()}
+                                    </span>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )
+            })()}
 
             {/* Handles */}
             {handles.map((handle, i) => (

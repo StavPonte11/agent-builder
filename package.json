@@ -12,7 +12,10 @@
     "lint": "turbo run lint",
     "test": "turbo run test",
     "codegen": "turbo run codegen",
-    "clean": "turbo run clean && rm -rf node_modules"
+    "clean": "turbo run clean && rm -rf node_modules",
+    "test:vibe": "cd apps/agent-builder-backend && python tests/test_vibe.py",
+    "test:seed": "cd apps/agent-builder-backend && python tests/seed_demo.py",
+    "test:seed:fraud": "cd apps/agent-builder-backend && python tests/seed_demo.py --procurement"
   },
   "devDependencies": {
     "turbo": "^2.3.3",

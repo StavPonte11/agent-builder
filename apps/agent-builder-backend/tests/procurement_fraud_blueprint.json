@@ -1,0 +1,196 @@
+{
+  "_comment": "Procurement Fraud Investigator — Mission-Critical Test Blueprint",
+  "_version": "2026-03-21",
+  "name": "Procurement Fraud Investigator",
+  "description": "Exercises every advanced node type: Webhook trigger, Parallel Fork (OCR+LLM & SQL vendor lookup), LLM Router for risk scoring, Human Approval checklist, and final Output report. Used for Golden Run regression testing.",
+  "schema_version": "2.0",
+  "blueprint_type": "workflow",
+  "domain": "compliance",
+  "definition": {
+    "nodes": [
+      {
+        "id": "webhook_trigger",
+        "type": "trigger",
+        "label": "New Invoice via Webhook",
+        "data": {
+          "trigger_type": "webhook",
+          "path": "/invoice-received",
+          "method": "POST",
+          "input_schema": {
+            "invoice_pdf_url": { "type": "string", "description": "Publicly accessible URL to the PDF" },
+            "invoice_id": { "type": "string" },
+            "submitted_by": { "type": "string" }
+          },
+          "description": "Fires when a new invoice PDF arrives via the procurement webhook."
+        }
+      },
+
+      {
+        "id": "parallel_fork_1",
+        "type": "parallel_fork",
+        "label": "Parallel Analysis",
+        "data": {
+          "branches": [
+            { "id": "branch_a", "name": "ocr_extract" },
+            { "id": "branch_b", "name": "vendor_lookup" }
+          ],
+          "merge_strategy": "union",
+          "on_branch_failure": "continue_others",
+          "description": "Simultaneously extract line items from the PDF and check vendor in DB."
+        }
+      },
+
+      {
+        "id": "ocr_llm_extract",
+        "type": "llm",
+        "label": "OCR + Line Item Extraction",
+        "data": {
+          "provider": "openai",
+          "model": "gpt-4o",
+          "system_prompt": "You are a document analysis expert. Extract structured data from invoice text. Return JSON only.",
+          "user_prompt": "Extract the following from this invoice:\n- vendor_name\n- invoice_date\n- line_items (list of {description, quantity, unit_price, total})\n- total_amount\n- currency\n\nInvoice URL: {{ state.invoice_pdf_url }}\nInvoice ID: {{ state.invoice_id }}",
+          "temperature": 0.0,
+          "max_tokens": 1024,
+          "output_schema": "{\"vendor_name\":{\"type\":\"string\"},\"invoice_date\":{\"type\":\"string\"},\"line_items\":{\"type\":\"array\"},\"total_amount\":{\"type\":\"number\"},\"currency\":{\"type\":\"string\"}}",
+          "output_mapping": [
+            { "id": "om1", "param": "extracted_invoice", "expression": "output" }
+          ],
+          "timeout": 60,
+          "retry_max_attempts": 2,
+          "retry_backoff": "exponential"
+        }
+      },
+
+      {
+        "id": "vendor_sql_lookup",
+        "type": "tool",
+        "label": "Vendor DB Lookup (SQL)",
+        "data": {
+          "tool_id": "sql_query",
+          "capability": "select",
+          "description": "Check if the vendor exists in the approved vendor registry.",
+          "input_mapping": [
+            { "id": "im1", "param": "query", "expression": "SELECT id, name, status, approved_since, risk_tier FROM vendors WHERE LOWER(name) LIKE LOWER('%{{ state.extracted_invoice.vendor_name }}%') LIMIT 1" }
+          ],
+          "output_mapping": [
+            { "id": "om2", "param": "vendor_record", "expression": "output.rows[0]" }
+          ],
+          "timeout": 15
+        }
+      },
+
+      {
+        "id": "risk_router",
+        "type": "router",
+        "label": "Risk Level Router",
+        "data": {
+          "routing_prompt": "Classify this invoice into a risk tier based on the following criteria:\n- 'high_risk': total_amount > 10000 OR vendor is new (not in vendor_record OR vendor_record.status != 'approved') OR vendor risk_tier = 'high'\n- 'standard': everything else\n\nInvoice total: {{ state.extracted_invoice.total_amount }}\nVendor record: {{ state.vendor_record | tojson }}\n\nReturn ONLY the route name: 'high_risk' or 'standard'.",
+          "routes": [
+            { "id": "r1", "name": "high_risk", "description": "Amount > $10,000 or vendor is new/unregistered or high-risk tier" },
+            { "id": "r2", "name": "standard", "description": "Known vendor, amount within normal range" }
+          ],
+          "fallback_route": "high_risk",
+          "confidence_threshold": 0.7,
+          "output_mapping": [
+            { "id": "om3", "param": "risk_level", "expression": "selected_route" }
+          ]
+        }
+      },
+
+      {
+        "id": "manager_approval",
+        "type": "approval",
+        "label": "Manager Sign-Off (High Risk)",
+        "data": {
+          "approver_role": "admin",
+          "context_template": "⚠️ High-Risk Invoice Requires Approval\n\nInvoice ID: {{ state.invoice_id }}\nVendor: {{ state.extracted_invoice.vendor_name }}\nAmount: {{ state.extracted_invoice.currency }} {{ state.extracted_invoice.total_amount }}\nRisk Level: {{ state.risk_level }}\nVendor Status: {{ state.vendor_record.status if state.vendor_record else 'UNKNOWN - Not in registry' }}\n\nLine Items:\n{% for item in state.extracted_invoice.line_items %}\n  - {{ item.description }}: {{ item.quantity }} × {{ item.unit_price }} = {{ item.total }}\n{% endfor %}\n\nPlease review all checklist items before approving.",
+          "timeout_minutes": 480,
+          "timeout_action": "reject",
+          "output_mapping": [
+            { "id": "om4", "param": "approval_decision", "expression": "output.approved" },
+            { "id": "om5", "param": "approval_feedback", "expression": "output.feedback" }
+          ]
+        }
+      },
+
+      {
+        "id": "auto_approve_standard",
+        "type": "llm",
+        "label": "Auto-Approve (Standard Risk)",
+        "data": {
+          "provider": "openai",
+          "model": "gpt-4o-mini",
+          "system_prompt": "You are an automated procurement approval system.",
+          "user_prompt": "Generate a brief approval notice for this standard-risk invoice:\nVendor: {{ state.extracted_invoice.vendor_name }}\nAmount: {{ state.extracted_invoice.total_amount }} {{ state.extracted_invoice.currency }}\nDate: {{ state.extracted_invoice.invoice_date }}",
+          "temperature": 0.0,
+          "max_tokens": 200,
+          "output_mapping": [
+            { "id": "om6", "param": "approval_decision", "expression": "true" },
+            { "id": "om7", "param": "approval_feedback", "expression": "output" }
+          ],
+          "timeout": 20
+        }
+      },
+
+      {
+        "id": "generate_report",
+        "type": "llm",
+        "label": "Generate Final Report",
+        "data": {
+          "provider": "openai",
+          "model": "gpt-4o-mini",
+          "system_prompt": "You are a compliance reporting assistant. Generate a professional procurement decision report.",
+          "user_prompt": "Generate a procurement decision report:\n\nInvoice ID: {{ state.invoice_id }}\nVendor: {{ state.extracted_invoice.vendor_name }}\nAmount: {{ state.extracted_invoice.currency }} {{ state.extracted_invoice.total_amount }}\nRisk Level: {{ state.risk_level }}\nDecision: {{ 'APPROVED' if state.approval_decision else 'REJECTED' }}\nFeedback: {{ state.approval_feedback }}\nSubmitted by: {{ state.submitted_by }}\nDate: today\n\nInclude: Executive Summary, Risk Assessment, Decision Rationale, Next Steps.",
+          "temperature": 0.2,
+          "max_tokens": 800,
+          "output_mapping": [
+            { "id": "om8", "param": "final_report", "expression": "output" }
+          ],
+          "timeout": 30
+        }
+      },
+
+      {
+        "id": "output_1",
+        "type": "output",
+        "label": "Decision Report Output",
+        "data": {
+          "description": "Final procurement approval/denial report stored for audit trail.",
+          "output_mapping": [
+            { "id": "out1", "param": "invoice_id", "expression": "{{ state.invoice_id }}" },
+            { "id": "out2", "param": "decision", "expression": "{{ 'APPROVED' if state.approval_decision else 'REJECTED' }}" },
+            { "id": "out3", "param": "risk_level", "expression": "{{ state.risk_level }}" },
+            { "id": "out4", "param": "vendor_name", "expression": "{{ state.extracted_invoice.vendor_name }}" },
+            { "id": "out5", "param": "total_amount", "expression": "{{ state.extracted_invoice.total_amount }}" },
+            { "id": "out6", "param": "report", "expression": "{{ state.final_report }}" },
+            { "id": "out7", "param": "processed_at", "expression": "{{ now() }}" }
+          ]
+        }
+      }
+    ],
+
+    "edges": [
+      { "id": "e1", "source": "webhook_trigger", "target": "parallel_fork_1" },
+      { "id": "e2", "source": "parallel_fork_1", "target": "ocr_llm_extract", "label": "ocr_extract" },
+      { "id": "e3", "source": "parallel_fork_1", "target": "vendor_sql_lookup", "label": "vendor_lookup" },
+      { "id": "e4", "source": "ocr_llm_extract", "target": "risk_router" },
+      { "id": "e5", "source": "vendor_sql_lookup", "target": "risk_router" },
+      { "id": "e6", "source": "risk_router", "target": "manager_approval", "label": "high_risk" },
+      { "id": "e7", "source": "risk_router", "target": "auto_approve_standard", "label": "standard" },
+      { "id": "e8", "source": "manager_approval", "target": "generate_report" },
+      { "id": "e9", "source": "auto_approve_standard", "target": "generate_report" },
+      { "id": "e10", "source": "generate_report", "target": "output_1" }
+    ]
+  },
+
+  "evaluation_config": {
+    "judge_model": "gpt-4o",
+    "dimensions": [
+      { "name": "extraction_accuracy", "weight": 0.3, "description": "Did the OCR+LLM correctly extract all invoice fields?" },
+      { "name": "routing_correctness", "weight": 0.25, "description": "Was the risk tier correctly assigned?" },
+      { "name": "report_quality", "weight": 0.25, "description": "Is the final report professional and complete?" },
+      { "name": "latency_sla", "weight": 0.2, "description": "Did the workflow complete within 90 seconds?" }
+    ],
+    "pass_threshold": 0.8
+  }
+}

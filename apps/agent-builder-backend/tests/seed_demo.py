@@ -103,12 +103,67 @@ async def seed(
         return {"blueprint_id": bp_id, "token": token}
 
 
+async def seed_procurement_fraud(
+    email:    str = "admin@example.com",
+    password: str = "Password123!",
+    publish:  bool = True,
+) -> dict:
+    """Seed the Procurement Fraud Investigator blueprint (Mission-Critical test case)."""
+    from pathlib import Path as _Path
+    fraud_bp_path = _Path(__file__).parent / "procurement_fraud_blueprint.json"
+    if not fraud_bp_path.exists():
+        print(f"  ✗ procurement_fraud_blueprint.json not found at {fraud_bp_path}")
+        return {}
+
+    async with httpx.AsyncClient(base_url=API_BASE, timeout=30) as client:
+        print(f"  → Logging in as {email}...")
+        r = await client.post("/auth/login", json={"email": email, "password": password})
+        if r.status_code == 401:
+            print("  ✗ Login failed (401).")
+            return {}
+        r.raise_for_status()
+        token = r.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
+        defn = json.loads(fraud_bp_path.read_text())
+        clean = {k: v for k, v in defn.items() if not k.startswith("_")}
+        clean["name"] = "[Demo] Procurement Fraud Investigator"
+
+        # Check for existing
+        list_r = await client.get("/blueprints", headers=headers)
+        existing = [b for b in list_r.json() if "Procurement Fraud" in b.get("name", "")]
+        if existing:
+            bp_id = existing[0]["id"]
+            print(f"  ℹ Procurement Fraud blueprint already exists: {bp_id}")
+        else:
+            create_r = await client.post("/blueprints", headers=headers, json=clean)
+            if create_r.status_code not in (200, 201):
+                print(f"  ✗ Create failed ({create_r.status_code}): {create_r.text[:300]}")
+                return {}
+            bp_id = create_r.json()["id"]
+            print(f"  ✓ Created Procurement Fraud blueprint: {bp_id}")
+
+        if publish and not existing:
+            pub_r = await client.post(
+                f"/blueprints/{bp_id}/publish", headers=headers,
+                json={"release_notes": "Mission-Critical test case — Procurement Fraud Investigator"}
+            )
+            if pub_r.status_code in (200, 201):
+                print(f"  ✓ Published v{pub_r.json().get('version_number', 1)}")
+            else:
+                print(f"  ⚠ Publish returned {pub_r.status_code}")
+
+        return {"blueprint_id": bp_id}
+
+
 async def main():
     parser = argparse.ArgumentParser(description="Seed demo blueprint into the platform")
     parser.add_argument("--backend",   default=BACKEND_URL, help="Backend API URL")
     parser.add_argument("--email",     default=os.getenv("TEST_USER_EMAIL", "admin@example.com"))
     parser.add_argument("--password",  default=os.getenv("TEST_USER_PASSWORD", "Password123!"))
     parser.add_argument("--no-publish", action="store_true", help="Skip publishing, leave as draft")
+    parser.add_argument("--procurement", action="store_true",
+                        help="Also seed the Procurement Fraud Investigator blueprint")
     args = parser.parse_args()
 
     global API_BASE
@@ -130,16 +185,35 @@ async def main():
 
     print()
     print("━" * 60)
-    print("  ✅ Done!")
+    print("  ✅ Infrastructure Analysis Workflow seeded!")
     print(f"  Blueprint ID : {bp_id}")
     print(f"  Canvas URL   : {canvas_url}")
     print(f"  API URL      : {API_BASE}/blueprints/{bp_id}")
+
+    if args.procurement:
+        print()
+        print("━" * 60)
+        print("  Seeding Procurement Fraud Investigator...")
+        print("━" * 60)
+        fraud_result = await seed_procurement_fraud(
+            email=args.email,
+            password=args.password,
+            publish=not args.no_publish,
+        )
+        if fraud_result.get("blueprint_id"):
+            fraud_id = fraud_result["blueprint_id"]
+            fraud_url = f"{FRONTEND_URL}/blueprints/{fraud_id}"
+            print()
+            print("  ✅ Procurement Fraud blueprint seeded!")
+            print(f"  Blueprint ID : {fraud_id}")
+            print(f"  Canvas URL   : {fraud_url}")
+
     print()
-    print("  Open the Canvas URL in your browser to view and test the workflow.")
-    print("  Run demo_e2e.py to execute the workflow end-to-end.")
+    print("  Run 'npm run test:vibe' for the Golden Run test.")
     print("━" * 60)
     print()
 
 
 if __name__ == "__main__":
     asyncio.run(main())
+
